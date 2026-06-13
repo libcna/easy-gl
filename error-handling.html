@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Error Handling — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html" class="active">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Error Handling</p>
+  <h1>Error Handling</h1>
+
+  <h2>Exception type</h2>
+  <p>easy-gl throws <code>easygl::Exception</code> for programmer-detectable errors such as missing required features, shader/program link failures, and initialization problems. It derives from <code>std::exception</code>.</p>
+
+<pre><code><span class="kw">#include</span> <span class="st">&lt;easygl/Exception.hpp&gt;</span>
+
+<span class="kw">try</span> {
+    device.<span class="fn">initialize</span>(loader);
+    <span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertSrc, fragSrc);
+} <span class="kw">catch</span> (<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">Exception</span>&amp; e) {
+    std::cerr &lt;&lt; <span class="st">"easy-gl error: "</span> &lt;&lt; e.<span class="fn">what</span>() &lt;&lt; <span class="st">'\n'</span>;
+} <span class="kw">catch</span> (<span class="kw">const</span> std::exception&amp; e) {
+    std::cerr &lt;&lt; <span class="st">"std error: "</span> &lt;&lt; e.<span class="fn">what</span>() &lt;&lt; <span class="st">'\n'</span>;
+}</code></pre>
+
+  <h2>When exceptions are thrown</h2>
+  <table>
+    <tr><th>Situation</th><th>Source</th></tr>
+    <tr><td>Required feature not supported by the driver</td><td><code>Device::require(Feature)</code></td></tr>
+    <tr><td>Shader compilation failure</td><td><code>Shader::compile_from_source()</code></td></tr>
+    <tr><td>Program link failure</td><td><code>Program::link()</code>, <code>Program(vertSrc, fragSrc)</code></td></tr>
+    <tr><td>Device initialization failure</td><td><code>Device::initialize()</code></td></tr>
+  </table>
+
+  <h2>Config: controlling strictness</h2>
+  <p>Pass a <a href="config.html">Config</a> struct to <code>Device</code> to control validation behavior:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Config</span> cfg;
+cfg.throw_on_missing_feature = <span class="kw">true</span>;  <span class="cm">// throw if require() fails</span>
+cfg.enable_debug_logging      = <span class="kw">true</span>;  <span class="cm">// log GL debug messages</span>
+cfg.validate_calls            = <span class="kw">true</span>;  <span class="cm">// extra validation</span>
+
+<span class="ty">easygl</span>::<span class="ty">Device</span> device(cfg);
+device.<span class="fn">initialize</span>(loader);</code></pre>
+
+  <h2>Shader and program info logs</h2>
+  <p>When compilation or link fails, the info log is included in the exception message and also available via explicit methods:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Shader</span> vert(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Vertex</span>);
+vert.<span class="fn">create</span>();
+<span class="kw">try</span> {
+    vert.<span class="fn">compile_from_source</span>(badSrc);
+} <span class="kw">catch</span> (<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">Exception</span>&amp; e) {
+    std::cerr &lt;&lt; e.<span class="fn">what</span>() &lt;&lt; <span class="st">'\n'</span>;
+    <span class="cm">// Or query directly:</span>
+    std::cerr &lt;&lt; vert.<span class="fn">info_log</span>() &lt;&lt; <span class="st">'\n'</span>;
+}</code></pre>
+
+  <h2>Querying GL errors manually</h2>
+  <p>You can poll for OpenGL errors using the Device:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">ErrorCode</span> err = device.<span class="fn">get_error</span>();
+<span class="kw">if</span> (err != <span class="ty">easygl</span>::<span class="ty">ErrorCode</span>::<span class="nm">NoError</span>) {
+    std::cerr &lt;&lt; <span class="st">"GL error: "</span> &lt;&lt; <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(err) &lt;&lt; <span class="st">'\n'</span>;
+}</code></pre>
+
+  <h2>OpenGL debug output</h2>
+  <p>Enable the driver's debug callback (requires GL 4.3 or <code>KHR_debug</code> extension):</p>
+<pre><code>device.<span class="fn">set_debug_output_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_debug_output_synchronous_enabled</span>(<span class="kw">true</span>);
+<span class="cm">// Then install a callback via raw GL (or meta-gl) if you need custom formatting</span></code></pre>
+
+  <h2>Context reset / robustness</h2>
+  <p>On platforms that support it, you can check whether the GPU context was lost:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">GraphicsResetStatus</span> status = device.<span class="fn">get_graphics_reset_status</span>();
+<span class="kw">if</span> (status != <span class="ty">easygl</span>::<span class="ty">GraphicsResetStatus</span>::<span class="nm">NoError</span>) {
+    <span class="cm">// context was lost — call reset_handle_no_gl() on all resources</span>
+    <span class="cm">// then recreate them</span>
+}</code></pre>
+
+  <div class="tip">Combine generation tracking (see <a href="ownership.html">Ownership</a>) with <code>get_graphics_reset_status()</code> for robust context-loss recovery.</div>
+
+  <h2>Feature checks before use</h2>
+  <p>Check whether a feature is supported before using it to avoid driver-level errors:</p>
+<pre><code><span class="kw">if</span> (device.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">ComputeShader</span>)) {
+    device.<span class="fn">dispatch_compute</span>(<span class="nm">64</span>, <span class="nm">64</span>, <span class="nm">1</span>);
+} <span class="kw">else</span> {
+    <span class="cm">// fallback path</span>
+}
+
+<span class="cm">// Or throw automatically if not supported:</span>
+device.<span class="fn">require</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">FramebufferObject</span>);</code></pre>
+</main>
+</body>
+</html>

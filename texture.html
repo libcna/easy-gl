@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Texture — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html" class="active">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Texture</p>
+  <h1>Texture</h1>
+  <p>Manages a single OpenGL texture object. Non-copyable, movable, RAII.</p>
+
+  <h2>Creating a 2D texture</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Texture</span> tex;
+tex.<span class="fn">create</span>();
+tex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+
+<span class="cm">// Set filtering and wrap mode</span>
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MinFilter</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMinFilter</span>::<span class="nm">LinearMipmapLinear</span>));
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MagFilter</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMagFilter</span>::<span class="nm">Linear</span>));
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">WrapS</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">Repeat</span>));
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">WrapT</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">Repeat</span>));
+
+<span class="cm">// Upload pixel data (RGBA8)</span>
+tex.<span class="fn">set_image_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                  <span class="nm">0</span>,                               <span class="cm">// mip level</span>
+                  <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>,
+                  width, height,
+                  <span class="ty">easygl</span>::<span class="ty">PixelFormat</span>::<span class="nm">Rgba</span>,
+                  <span class="ty">easygl</span>::<span class="ty">PixelType</span>::<span class="nm">UnsignedByte</span>,
+                  pixelData);
+
+tex.<span class="fn">generate_mipmap</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);</code></pre>
+
+  <h2>Immutable storage (recommended)</h2>
+  <p>Use <code>set_storage_2d</code> to allocate immutable storage before uploading. This is more efficient and avoids resizing issues:</p>
+<pre><code>tex.<span class="fn">create</span>();
+tex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+tex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                    <span class="nm">4</span>,                               <span class="cm">// mip levels</span>
+                    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>,
+                    <span class="nm">512</span>, <span class="nm">512</span>);
+
+tex.<span class="fn">set_sub_image_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                      <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">512</span>, <span class="nm">512</span>,
+                      <span class="ty">easygl</span>::<span class="ty">PixelFormat</span>::<span class="nm">Rgba</span>,
+                      <span class="ty">easygl</span>::<span class="ty">PixelType</span>::<span class="nm">UnsignedByte</span>,
+                      pixelData);
+tex.<span class="fn">generate_mipmap</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);</code></pre>
+
+  <h2>Binding to a texture unit</h2>
+<pre><code><span class="cm">// Activate unit and bind in one call:</span>
+tex.<span class="fn">active_bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureUnit</span>::<span class="nm">Texture0</span>,
+                <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+
+<span class="cm">// Tell the shader which unit to sample from:</span>
+prog.<span class="fn">set_uniform</span>(prog.<span class="fn">uniform_location</span>(<span class="st">"uTex"</span>), <span class="nm">0</span>);</code></pre>
+
+  <h2>3D texture</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Texture</span> tex3d;
+tex3d.<span class="fn">create</span>();
+tex3d.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture3D</span>);
+tex3d.<span class="fn">set_storage_3d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture3D</span>,
+                       <span class="nm">1</span>,
+                       <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">R8</span>,
+                       <span class="nm">64</span>, <span class="nm">64</span>, <span class="nm">64</span>);
+tex3d.<span class="fn">set_sub_image_3d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture3D</span>,
+                         <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">64</span>, <span class="nm">64</span>, <span class="nm">64</span>,
+                         <span class="ty">easygl</span>::<span class="ty">PixelFormat</span>::<span class="nm">Red</span>,
+                         <span class="ty">easygl</span>::<span class="ty">PixelType</span>::<span class="nm">UnsignedByte</span>,
+                         volumeData);</code></pre>
+
+  <h2>Multisampled texture</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Texture</span> ms;
+ms.<span class="fn">create</span>();
+ms.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2DMultisample</span>);
+ms.<span class="fn">set_storage_2d_multisample</span>(
+    <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2DMultisample</span>,
+    <span class="nm">4</span>,                                       <span class="cm">// 4x MSAA</span>
+    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>,
+    width, height,
+    <span class="kw">true</span>);                                   <span class="cm">// fixed sample locations</span></code></pre>
+
+  <h2>Image unit (compute shaders)</h2>
+<pre><code>tex.<span class="fn">bind_image</span>(
+    <span class="nm">0</span>,                                   <span class="cm">// image unit</span>
+    <span class="nm">0</span>,                                   <span class="cm">// mip level</span>
+    <span class="kw">false</span>,                               <span class="cm">// not layered</span>
+    <span class="nm">0</span>,                                   <span class="cm">// layer (ignored)</span>
+    <span class="ty">easygl</span>::<span class="ty">ImageAccess</span>::<span class="nm">WriteOnly</span>,
+    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>);</code></pre>
+
+  <h2>Common InternalFormat values</h2>
+  <table>
+    <tr><th>Format</th><th>Channels</th><th>Bits/channel</th></tr>
+    <tr><td><code>InternalFormat::R8</code></td><td>1 (red)</td><td>8 unorm</td></tr>
+    <tr><td><code>InternalFormat::Rg8</code></td><td>2</td><td>8 unorm</td></tr>
+    <tr><td><code>InternalFormat::Rgb8</code></td><td>3</td><td>8 unorm</td></tr>
+    <tr><td><code>InternalFormat::Rgba8</code></td><td>4</td><td>8 unorm</td></tr>
+    <tr><td><code>InternalFormat::Rgba16f</code></td><td>4</td><td>16 float</td></tr>
+    <tr><td><code>InternalFormat::Rgba32f</code></td><td>4</td><td>32 float</td></tr>
+    <tr><td><code>InternalFormat::DepthComponent24</code></td><td>depth</td><td>24</td></tr>
+    <tr><td><code>InternalFormat::DepthStencil</code></td><td>depth+stencil</td><td>24+8</td></tr>
+    <tr><td><code>InternalFormat::Srgb8Alpha8</code></td><td>4 sRGB</td><td>8</td></tr>
+  </table>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL texture handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind(target)</code></td><td>Bind texture to target on the active unit.</td></tr>
+    <tr><td><code>active_bind(unit, target)</code></td><td>Activate unit and bind.</td></tr>
+    <tr><td><code>set_parameter(target, pname, int/float)</code></td><td>Set a texture parameter.</td></tr>
+    <tr><td><code>set_image_2d(...)</code></td><td>Upload 2D image data (mutable storage).</td></tr>
+    <tr><td><code>set_image_3d(...)</code></td><td>Upload 3D image data.</td></tr>
+    <tr><td><code>set_sub_image_2d(...)</code></td><td>Update a 2D subregion.</td></tr>
+    <tr><td><code>set_sub_image_3d(...)</code></td><td>Update a 3D subregion.</td></tr>
+    <tr><td><code>set_storage_2d(...)</code></td><td>Allocate immutable 2D storage.</td></tr>
+    <tr><td><code>set_storage_3d(...)</code></td><td>Allocate immutable 3D storage.</td></tr>
+    <tr><td><code>set_storage_2d_multisample(...)</code></td><td>Allocate immutable MSAA 2D storage.</td></tr>
+    <tr><td><code>set_compressed_image_2d(...)</code></td><td>Upload compressed 2D data (DXT/BC/etc.).</td></tr>
+    <tr><td><code>set_compressed_image_3d(...)</code></td><td>Upload compressed 3D data.</td></tr>
+    <tr><td><code>generate_mipmap(target)</code></td><td>Auto-generate full mip chain.</td></tr>
+    <tr><td><code>bind_image(unit, level, layered, layer, access, format)</code></td><td>Bind for image load/store (compute).</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if handle is allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sync — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html" class="active">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Sync</p>
+  <h1>Sync</h1>
+  <p>Manages a GL sync object (fence). Used to synchronise the CPU with GPU command completion, or to insert GPU-side barriers between contexts. Non-copyable, movable, RAII.</p>
+
+  <h2>CPU wait for GPU completion</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Sync</span> fence;
+
+<span class="cm">// Insert fence into the command stream after current commands</span>
+fence.<span class="fn">fence</span>(); <span class="cm">// default condition: GpuCommandsComplete</span>
+
+<span class="cm">// CPU waits up to 5 seconds for the fence to be signalled</span>
+<span class="ty">easygl</span>::<span class="ty">SyncWaitResult</span> result =
+    fence.<span class="fn">client_wait</span>(<span class="ty">easygl</span>::<span class="ty">SyncFlushMask</span>::<span class="nm">FlushCommands</span>,
+                       <span class="nm">5'000'000'000</span>); <span class="cm">// 5 seconds in nanoseconds</span>
+
+<span class="kw">switch</span> (result) {
+    <span class="kw">case</span> <span class="ty">easygl</span>::<span class="ty">SyncWaitResult</span>::<span class="nm">AlreadySignaled</span>:
+    <span class="kw">case</span> <span class="ty">easygl</span>::<span class="ty">SyncWaitResult</span>::<span class="nm">ConditionSatisfied</span>:
+        <span class="cm">// GPU is done — safe to read mapped buffer, etc.</span>
+        <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="ty">easygl</span>::<span class="ty">SyncWaitResult</span>::<span class="nm">TimeoutExpired</span>:
+        std::cerr &lt;&lt; <span class="st">"GPU timeout!\n"</span>;
+        <span class="kw">break</span>;
+    <span class="kw">default</span>:
+        <span class="kw">break</span>;
+}</code></pre>
+
+  <h2>GPU-side barrier (server wait)</h2>
+  <p>Insert a barrier visible only on the GPU — useful for cross-context synchronisation:</p>
+<pre><code>fence.<span class="fn">fence</span>();
+fence.<span class="fn">server_wait</span>(<span class="nm">0</span>); <span class="cm">// timeout = 0 means "wait indefinitely" on server side</span></code></pre>
+
+  <h2>Typical use case: persistent mapped buffers</h2>
+<pre><code><span class="cm">// Upload to persistently mapped buffer</span>
+std::<span class="fn">memcpy</span>(mappedPtr, newData, dataSize);
+
+<span class="cm">// Insert fence — GPU must finish reading before next write</span>
+fences[frameIndex].<span class="fn">fence</span>();
+
+<span class="cm">// Next time we use frameIndex, wait for GPU to finish reading last frame</span>
+<span class="kw">if</span> (fences[frameIndex].<span class="fn">is_created</span>()) {
+    fences[frameIndex].<span class="fn">client_wait</span>(<span class="ty">easygl</span>::<span class="ty">SyncFlushMask</span>::<span class="nm">FlushCommands</span>,
+                                    <span class="nm">1'000'000'000</span>);
+    fences[frameIndex].<span class="fn">destroy</span>();
+}</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>fence(condition)</code></td><td>Insert a fence sync into the command stream. Default condition: <code>GpuCommandsComplete</code>.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Delete the sync object. Noexcept.</td></tr>
+    <tr><td><code>client_wait(flags, timeout_ns)</code></td><td>CPU waits for the sync. Returns a <code>SyncWaitResult</code>.</td></tr>
+    <tr><td><code>server_wait(timeout_ns)</code></td><td>GPU-side wait — subsequent commands stall until sync is signalled.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if sync handle is set.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Returns raw <code>__GLsync*</code> pointer.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery — clear without deleting.</td></tr>
+  </table>
+</main>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Program — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html" class="active">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Program</p>
+  <h1>Program</h1>
+  <p>Manages a linked OpenGL shader program. Handles shader compilation, linking, uniform setting and attribute binding. Non-copyable, movable, RAII.</p>
+
+  <h2>One-line construction (recommended)</h2>
+  <p>Compile and link a vertex + fragment program in a single constructor call:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertexShaderSource, fragmentShaderSource);
+<span class="cm">// Throws easygl::Exception if compilation or link fails</span>
+prog.<span class="fn">use</span>();</code></pre>
+
+  <h2>Step-by-step construction</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog;
+prog.<span class="fn">create</span>();
+
+<span class="ty">easygl</span>::<span class="ty">Shader</span> vert(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Vertex</span>);
+vert.<span class="fn">create</span>();
+vert.<span class="fn">compile_from_source</span>(vertSrc);
+
+<span class="ty">easygl</span>::<span class="ty">Shader</span> frag(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Fragment</span>);
+frag.<span class="fn">create</span>();
+frag.<span class="fn">compile_from_source</span>(fragSrc);
+
+prog.<span class="fn">attach_owned</span>(vert);   <span class="cm">// ownership transferred</span>
+prog.<span class="fn">attach_owned</span>(frag);
+prog.<span class="fn">link</span>();               <span class="cm">// throws on failure</span>
+<span class="cm">// vert and frag are now empty; prog owns them internally</span></code></pre>
+
+  <h2>compile_from_sources</h2>
+  <p>Resets and recompiles/relinks an existing program object:</p>
+<pre><code>prog.<span class="fn">compile_from_sources</span>(newVertSrc, newFragSrc);</code></pre>
+
+  <h2>Uniforms — scalar and vector</h2>
+<pre><code><span class="kw">int</span> loc = prog.<span class="fn">uniform_location</span>(<span class="st">"uColor"</span>);
+<span class="kw">if</span> (loc &lt; <span class="nm">0</span>) { <span class="cm">/* uniform not found or optimised away */</span> }
+
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">1.0f</span>);                        <span class="cm">// float</span>
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">1.0f</span>, <span class="nm">0.5f</span>);                   <span class="cm">// vec2</span>
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">1.0f</span>, <span class="nm">0.5f</span>, <span class="nm">0.2f</span>);              <span class="cm">// vec3</span>
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">1.0f</span>, <span class="nm">0.5f</span>, <span class="nm">0.2f</span>, <span class="nm">1.0f</span>);        <span class="cm">// vec4</span>
+
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">42</span>);                             <span class="cm">// int</span>
+prog.<span class="fn">set_uniform</span>(loc, <span class="nm">42u</span>);                            <span class="cm">// uint</span></code></pre>
+
+  <h2>Uniforms — arrays</h2>
+<pre><code>std::vector&lt;<span class="kw">float</span>&gt; pts = { <span class="nm">0.0f</span>, <span class="nm">1.0f</span>, <span class="nm">2.0f</span>, <span class="nm">3.0f</span> };
+prog.<span class="fn">set_uniform_fv</span>(loc, pts, <span class="nm">2</span>);  <span class="cm">// 2 components per element → 2 × vec2</span></code></pre>
+
+  <h2>Uniforms — matrices</h2>
+<pre><code><span class="kw">float</span> model[<span class="nm">16</span>] = { <span class="cm">/* column-major 4×4 */</span> };
+<span class="kw">float</span> mvp[<span class="nm">16</span>]   = { <span class="cm">/* ... */</span> };
+
+prog.<span class="fn">set_uniform_matrix4</span>(prog.<span class="fn">uniform_location</span>(<span class="st">"uModel"</span>), model);
+prog.<span class="fn">set_uniform_matrix4</span>(prog.<span class="fn">uniform_location</span>(<span class="st">"uMVP"</span>), mvp);
+
+<span class="cm">// Non-square matrices:</span>
+prog.<span class="fn">set_uniform_matrix3x4</span>(prog.<span class="fn">uniform_location</span>(<span class="st">"uBones"</span>), boneData);
+
+<span class="cm">// Transpose flag (false = column-major, the OpenGL default):</span>
+prog.<span class="fn">set_uniform_matrix4</span>(loc, data, <span class="kw">false</span>);</code></pre>
+
+  <h2>Uniform blocks (UBOs)</h2>
+<pre><code><span class="kw">unsigned int</span> blockIdx = prog.<span class="fn">uniform_block_index</span>(<span class="st">"Matrices"</span>);
+prog.<span class="fn">set_uniform_block_binding</span>(blockIdx, <span class="nm">0</span>); <span class="cm">// bind block to point 0</span>
+
+<span class="cm">// Then bind the Buffer to the same point:</span>
+ubo.<span class="fn">bind_base</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>, <span class="nm">0</span>);</code></pre>
+
+  <h2>Attribute binding</h2>
+<pre><code><span class="cm">// Must be done BEFORE linking:</span>
+prog.<span class="fn">bind_attrib_location</span>(<span class="nm">0</span>, <span class="st">"aPos"</span>);
+prog.<span class="fn">bind_attrib_location</span>(<span class="nm">1</span>, <span class="st">"aTexCoord"</span>);
+prog.<span class="fn">link</span>();
+
+<span class="cm">// Or query after linking:</span>
+<span class="kw">int</span> posIdx = prog.<span class="fn">attrib_location</span>(<span class="st">"aPos"</span>);</code></pre>
+
+  <h2>Validation</h2>
+<pre><code>prog.<span class="fn">validate</span>(); <span class="cm">// Calls glValidateProgram — useful in debug builds</span>
+std::cout &lt;&lt; prog.<span class="fn">info_log</span>() &lt;&lt; <span class="st">'\n'</span>;</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>Program()</code></td><td>Default construction — empty, no GL handle yet.</td></tr>
+    <tr><td><code>Program(vertSrc, fragSrc)</code></td><td>Compile &amp; link in one step. Throws on failure.</td></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL program handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>attach(shader)</code></td><td>Attach shader (const ref, no ownership transfer).</td></tr>
+    <tr><td><code>attach_owned(shader)</code></td><td>Attach shader and transfer ownership to program.</td></tr>
+    <tr><td><code>detach(shader)</code></td><td>Detach shader from program.</td></tr>
+    <tr><td><code>link()</code></td><td>Link attached shaders. Throws on failure.</td></tr>
+    <tr><td><code>compile_from_sources(v,f)</code></td><td>Recompile/relink entire program from sources.</td></tr>
+    <tr><td><code>use()</code></td><td>Make this program current (<code>glUseProgram</code>).</td></tr>
+    <tr><td><code>validate()</code></td><td>Validate program state for current GL state.</td></tr>
+    <tr><td><code>info_log()</code></td><td>Link or validation log string.</td></tr>
+    <tr><td><code>attrib_location(name)</code></td><td>Get attribute location by name.</td></tr>
+    <tr><td><code>bind_attrib_location(idx, name)</code></td><td>Bind attribute to index before linking.</td></tr>
+    <tr><td><code>uniform_location(name)</code></td><td>Get uniform location by name.</td></tr>
+    <tr><td><code>set_uniform(loc, ...)</code></td><td>Overloaded: float/int/uint scalars and vectors.</td></tr>
+    <tr><td><code>set_uniform_fv(loc, span, components)</code></td><td>Float array uniform.</td></tr>
+    <tr><td><code>set_uniform_matrix2..4(loc, data, transpose)</code></td><td>Square matrix uniforms.</td></tr>
+    <tr><td><code>set_uniform_matrix2x3..4x3(loc, data, transpose)</code></td><td>Non-square matrix uniforms.</td></tr>
+    <tr><td><code>uniform_block_index(name)</code></td><td>Get UBO block index by name.</td></tr>
+    <tr><td><code>set_uniform_block_binding(idx, point)</code></td><td>Bind UBO block to binding point.</td></tr>
+    <tr><td><code>is_linked()</code></td><td>True after successful link.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

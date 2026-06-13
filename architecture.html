@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html" class="active">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Architecture</p>
+  <h1>Architecture</h1>
+
+  <h2>Two-layer design</h2>
+  <p>easy-gl is built on top of <strong>meta-gl</strong>, not directly on raw OpenGL. Understanding this layering is important for knowing where to add new features and why certain design choices were made.</p>
+
+  <div class="layer-diagram">
+    <div class="layer">Raw OpenGL / OpenGL ES API</div>
+    <div class="arrow">↓</div>
+    <div class="layer">
+      <strong>meta-gl</strong><br>
+      Procedural, type-safe wrapper. Replaces raw enums with <code>enum class</code>, provides typed handles,
+      exposes <code>std::span</code>-based APIs. No RAII, no ownership.
+    </div>
+    <div class="arrow">↓</div>
+    <div class="layer hl">
+      <strong>easy-gl</strong><br>
+      OOP RAII layer. Each resource class owns a GPU handle. Move-only. Convenience methods that
+      delegate to meta-gl. Device class for global render state.
+    </div>
+    <div class="arrow">↓</div>
+    <div class="layer">Your application code</div>
+  </div>
+
+  <h2>Why meta-gl as the intermediary?</h2>
+  <p>Raw OpenGL uses integers for nearly everything: handles, enums, targets, formats. meta-gl wraps all of these into strongly typed C++ types. easy-gl inherits this type safety automatically by reusing meta-gl types in its own API.</p>
+
+  <p>When easy-gl needs to call OpenGL, it calls a meta-gl function rather than <code>gl*</code> directly. This means:</p>
+  <ul>
+    <li>If meta-gl gains new features, easy-gl benefits without changes.</li>
+    <li>Type errors are caught at compile time, not at runtime.</li>
+    <li>easy-gl code is readable because enum values have meaningful names.</li>
+  </ul>
+
+<pre><code><span class="cm">// easy-gl calls meta-gl, not raw OpenGL:</span>
+meta::<span class="fn">bindTexture</span>(<span class="ty">meta</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, handle_);
+
+<span class="cm">// NOT this:</span>
+<span class="fn">glBindTexture</span>(GL_TEXTURE_2D, handle_);</code></pre>
+
+  <div class="note">If you find a place in easy-gl where a raw <code>gl*</code> call is used but meta-gl already wraps it, that is a bug worth fixing.</div>
+
+  <h2>Types re-exported from meta-gl</h2>
+  <p>easy-gl's <code>Types.hpp</code> re-exports all meta-gl enum types under the <code>easygl</code> namespace using type aliases. You never need to use the <code>metagl::</code> namespace in application code — use <code>easygl::</code> for everything.</p>
+
+<pre><code><span class="cm">// Types.hpp — partial list</span>
+<span class="kw">using</span> <span class="ty">BufferTarget</span>   = <span class="ty">metagl</span>::<span class="ty">BufferTarget</span>;
+<span class="kw">using</span> <span class="ty">TextureTarget</span>  = <span class="ty">metagl</span>::<span class="ty">TextureTarget</span>;
+<span class="kw">using</span> <span class="ty">ShaderType</span>     = <span class="ty">metagl</span>::<span class="ty">ShaderType</span>;
+<span class="kw">using</span> <span class="ty">PrimitiveType</span>  = <span class="ty">metagl</span>::<span class="ty">PrimitiveType</span>;
+<span class="cm">// ... and many more</span></code></pre>
+
+  <h2>Device vs resource classes</h2>
+  <p>easy-gl separates two kinds of concerns:</p>
+  <table>
+    <tr><th>Kind</th><th>Class</th><th>Responsibility</th></tr>
+    <tr><td>Global state</td><td><a href="device.html">Device</a></td><td>Viewport, blend, depth, stencil, cull, draw calls, compute, debug, error query.</td></tr>
+    <tr><td>GPU resource</td><td>Buffer, Texture, Program, …</td><td>Own a single GPU handle. Create, bind, upload data, destroy.</td></tr>
+  </table>
+
+  <p>There is no global state hidden in resource classes. You explicitly call <code>device.set_viewport()</code>, <code>device.set_blend_enabled()</code>, etc.</p>
+
+  <h2>Namespace</h2>
+  <p>Everything in easy-gl lives in the <code>easygl</code> namespace. There are no sub-namespaces except <code>easygl::detail</code>, which contains internal helpers not part of the public API.</p>
+
+  <h2>Header structure</h2>
+  <table>
+    <tr><th>Header</th><th>Contents</th></tr>
+    <tr><td><code>easygl/easygl.hpp</code></td><td>Umbrella header — includes everything.</td></tr>
+    <tr><td><code>easygl/Types.hpp</code></td><td>Type aliases for all meta-gl enums used by easy-gl.</td></tr>
+    <tr><td><code>easygl/Device.hpp</code></td><td>Device class.</td></tr>
+    <tr><td><code>easygl/Config.hpp</code></td><td>Configuration struct.</td></tr>
+    <tr><td><code>easygl/Capabilities.hpp</code></td><td>Capability detection.</td></tr>
+    <tr><td><code>easygl/ContextInfo.hpp</code></td><td>GL vendor/version query result.</td></tr>
+    <tr><td><code>easygl/Feature.hpp</code></td><td>Feature enum.</td></tr>
+    <tr><td><code>easygl/Exception.hpp</code></td><td>Exception type.</td></tr>
+    <tr><td><code>easygl/Buffer.hpp</code></td><td>Buffer resource class.</td></tr>
+    <tr><td><code>easygl/Texture.hpp</code></td><td>Texture resource class.</td></tr>
+    <tr><td><code>easygl/Shader.hpp</code></td><td>Shader resource class.</td></tr>
+    <tr><td><code>easygl/Program.hpp</code></td><td>Program resource class.</td></tr>
+    <tr><td><code>easygl/VertexArray.hpp</code></td><td>VertexArray resource class.</td></tr>
+    <tr><td><code>easygl/Framebuffer.hpp</code></td><td>Framebuffer resource class.</td></tr>
+    <tr><td><code>easygl/Renderbuffer.hpp</code></td><td>Renderbuffer resource class.</td></tr>
+    <tr><td><code>easygl/Sampler.hpp</code></td><td>Sampler object resource class.</td></tr>
+    <tr><td><code>easygl/Query.hpp</code></td><td>Query resource class.</td></tr>
+    <tr><td><code>easygl/Sync.hpp</code></td><td>Sync fence resource class.</td></tr>
+    <tr><td><code>easygl/TransformFeedback.hpp</code></td><td>TransformFeedback resource class.</td></tr>
+    <tr><td><code>easygl/detail/NonCopyable.hpp</code></td><td>Internal base for move-only resources.</td></tr>
+  </table>
+</main>
+</body>
+</html>

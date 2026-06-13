@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shader — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html" class="active">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Shader</p>
+  <h1>Shader</h1>
+  <p>Represents a single compiled shader stage. You typically create shaders, compile them, attach them to a <a href="program.html">Program</a>, link it, then either keep them or let <code>attach_owned</code> transfer ownership to the Program.</p>
+
+  <div class="tip">For the common two-stage case, use <code>Program(vertSrc, fragSrc)</code> which compiles and links in one step without constructing Shader objects manually.</div>
+
+  <h2>ShaderType values</h2>
+  <table>
+    <tr><th>Value</th><th>Stage</th></tr>
+    <tr><td><code>ShaderType::Vertex</code></td><td>Vertex shader</td></tr>
+    <tr><td><code>ShaderType::Fragment</code></td><td>Fragment shader</td></tr>
+    <tr><td><code>ShaderType::Geometry</code></td><td>Geometry shader (GL 3.2+)</td></tr>
+    <tr><td><code>ShaderType::TessControl</code></td><td>Tessellation control (GL 4.0+)</td></tr>
+    <tr><td><code>ShaderType::TessEvaluation</code></td><td>Tessellation evaluation (GL 4.0+)</td></tr>
+    <tr><td><code>ShaderType::Compute</code></td><td>Compute shader (GL 4.3+)</td></tr>
+  </table>
+
+  <h2>Compiling a shader</h2>
+<pre><code><span class="kw">const char</span>* vertSrc = <span class="st">R"(#version 330 core
+layout (location = 0) in vec3 aPos;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
+})"</span>;
+
+<span class="ty">easygl</span>::<span class="ty">Shader</span> vert(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Vertex</span>);
+vert.<span class="fn">create</span>();
+
+<span class="kw">try</span> {
+    vert.<span class="fn">compile_from_source</span>(vertSrc);
+} <span class="kw">catch</span> (<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">Exception</span>&amp; e) {
+    std::cerr &lt;&lt; <span class="st">"Vertex shader error:\n"</span> &lt;&lt; e.<span class="fn">what</span>() &lt;&lt; <span class="st">'\n'</span>;
+}
+
+<span class="cm">// Check status without exception:</span>
+<span class="kw">if</span> (!vert.<span class="fn">is_compiled</span>()) {
+    std::cerr &lt;&lt; vert.<span class="fn">info_log</span>() &lt;&lt; <span class="st">'\n'</span>;
+}</code></pre>
+
+  <h2>Attaching to a program — take 1: shared ownership</h2>
+  <p>If you keep the Shader alive and want to reuse it across multiple programs:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog;
+prog.<span class="fn">create</span>();
+prog.<span class="fn">attach</span>(vert);   <span class="cm">// const ref — vert is not consumed</span>
+prog.<span class="fn">attach</span>(frag);
+prog.<span class="fn">link</span>();
+prog.<span class="fn">detach</span>(vert);  <span class="cm">// good practice: detach after linking</span>
+prog.<span class="fn">detach</span>(frag);</code></pre>
+
+  <h2>Attaching to a program — take 2: ownership transfer</h2>
+  <p>Transfer the shader into the program; it will be deleted when the program is destroyed:</p>
+<pre><code>prog.<span class="fn">attach_owned</span>(vert); <span class="cm">// vert is now empty — program owns the GL handle</span>
+prog.<span class="fn">attach_owned</span>(frag);
+prog.<span class="fn">link</span>();
+<span class="cm">// No need to detach — Program deletes owned shaders after link</span></code></pre>
+
+  <h2>Compute shader</h2>
+<pre><code><span class="kw">const char</span>* compSrc = <span class="st">R"(#version 430 core
+layout (local_size_x = 8, local_size_y = 8) in;
+layout (rgba8, binding = 0) uniform image2D uOutput;
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    imageStore(uOutput, coord, vec4(1.0));
+})"</span>;
+
+<span class="ty">easygl</span>::<span class="ty">Shader</span> comp(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Compute</span>);
+comp.<span class="fn">create</span>();
+comp.<span class="fn">compile_from_source</span>(compSrc);
+
+<span class="ty">easygl</span>::<span class="ty">Program</span> compProg;
+compProg.<span class="fn">create</span>();
+compProg.<span class="fn">attach_owned</span>(comp);
+compProg.<span class="fn">link</span>();</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>Shader(ShaderType)</code></td><td>Construct with a specific shader stage type.</td></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL shader handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>compile_from_source(src)</code></td><td>Set source and compile. Throws on failure.</td></tr>
+    <tr><td><code>release_native_handle()</code></td><td>Return and clear the handle (used by Program internally).</td></tr>
+    <tr><td><code>info_log()</code></td><td>Compiler error/warning log string.</td></tr>
+    <tr><td><code>shader_type()</code></td><td>Returns the ShaderType passed at construction.</td></tr>
+    <tr><td><code>is_compiled()</code></td><td>True after successful compile_from_source().</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle is allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL handle.</td></tr>
+    <tr><td><code>is_valid_for_current_generation()</code></td><td>False after context loss.</td></tr>
+    <tr><td><code>creation_generation()</code></td><td>Generation counter at creation time.</td></tr>
+  </table>
+</main>
+</body>
+</html>

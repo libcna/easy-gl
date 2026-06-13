@@ -1,0 +1,205 @@
+:root {
+  --bg: #0f1117;
+  --bg2: #1a1d27;
+  --bg3: #22263a;
+  --accent: #4f8ef7;
+  --accent2: #6ec6a0;
+  --text: #dce3f0;
+  --text2: #8a93b0;
+  --code-bg: #13162b;
+  --border: #2a2f45;
+  --warn: #e5a84e;
+  --danger: #e05c5c;
+  --radius: 6px;
+  --font: 'Segoe UI', system-ui, sans-serif;
+  --mono: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.65;
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---- SIDEBAR ---- */
+nav {
+  width: 230px;
+  min-width: 230px;
+  background: var(--bg2);
+  border-right: 1px solid var(--border);
+  padding: 1.5rem 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+nav .logo {
+  padding: 0 1.2rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.8rem;
+}
+
+nav .logo a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+nav .logo small { display: block; color: var(--text2); font-size: 0.72rem; margin-top: 0.2rem; }
+
+nav h3 {
+  padding: 0.5rem 1.2rem 0.2rem;
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+}
+
+nav a {
+  display: block;
+  padding: 0.3rem 1.2rem;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.9rem;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+nav a:hover { background: var(--bg3); color: var(--accent); }
+nav a.active { border-left-color: var(--accent); color: var(--accent); background: var(--bg3); }
+
+/* ---- MAIN ---- */
+main {
+  flex: 1;
+  max-width: 900px;
+  padding: 2.5rem 2.8rem;
+  min-width: 0;
+}
+
+h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.4rem; }
+h2 { font-size: 1.35rem; color: var(--accent2); margin: 2.2rem 0 0.6rem; padding-top: 0.4rem; border-top: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--text); margin: 1.4rem 0 0.4rem; }
+h4 { font-size: 0.9rem; color: var(--text2); margin: 1rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; }
+
+p { margin-bottom: 0.9rem; }
+
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ---- CODE ---- */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  margin: 0.8rem 0 1.2rem;
+  font-family: var(--mono);
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 0.12em 0.35em;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+
+pre code { background: none; border: none; padding: 0; font-size: 1em; }
+
+/* syntax highlighting shims */
+.kw { color: #c792ea; }
+.ty { color: #82aaff; }
+.fn { color: #82cfff; }
+.cm { color: #546e7a; font-style: italic; }
+.st { color: #c3e88d; }
+.nm { color: #f78c6c; }
+.op { color: #89ddff; }
+
+/* ---- TABLES ---- */
+table { width: 100%; border-collapse: collapse; margin: 0.6rem 0 1.4rem; font-size: 0.88rem; }
+th { background: var(--bg3); text-align: left; padding: 0.5rem 0.8rem; color: var(--accent2); font-weight: 600; border-bottom: 1px solid var(--border); }
+td { padding: 0.45rem 0.8rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--bg2); }
+td code { font-size: 0.82rem; }
+
+/* ---- CALLOUTS ---- */
+.note, .warn, .tip {
+  border-left: 4px solid;
+  padding: 0.7rem 1rem;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  margin: 1rem 0;
+  font-size: 0.9rem;
+}
+.note { border-color: var(--accent); background: #1a2340; }
+.warn { border-color: var(--warn); background: #2a2010; }
+.tip  { border-color: var(--accent2); background: #112a22; }
+.note::before { content: "ℹ Note — "; color: var(--accent); font-weight: 600; }
+.warn::before { content: "⚠ Warning — "; color: var(--warn); font-weight: 600; }
+.tip::before  { content: "✓ Tip — "; color: var(--accent2); font-weight: 600; }
+
+/* ---- BREADCRUMB ---- */
+.crumb { font-size: 0.8rem; color: var(--text2); margin-bottom: 0.8rem; }
+.crumb a { color: var(--text2); }
+.crumb a:hover { color: var(--accent); }
+
+/* ---- HERO STRIP ---- */
+.hero {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.6rem 2rem;
+  margin-bottom: 2rem;
+}
+.hero p { color: var(--text2); margin-bottom: 0; font-size: 1.05rem; }
+
+/* ---- METHOD CARDS ---- */
+.method {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.7rem 1rem;
+  margin: 0.5rem 0;
+}
+.method .sig { font-family: var(--mono); font-size: 0.85rem; color: var(--text); }
+.method .desc { font-size: 0.88rem; color: var(--text2); margin-top: 0.3rem; }
+
+/* ---- CARD GRID ---- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 1rem; margin: 1rem 0 2rem; }
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 1.1rem;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--accent); }
+.card h3 { margin: 0 0 0.3rem; font-size: 1rem; color: var(--accent); }
+.card p { margin: 0; font-size: 0.83rem; color: var(--text2); }
+
+/* ---- LAYER DIAGRAM ---- */
+.layer-diagram { font-family: var(--mono); font-size: 0.82rem; color: var(--text2); }
+.layer-diagram .layer { padding: 0.5rem 1rem; border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 2px; }
+.layer-diagram .layer.hl { border-color: var(--accent); color: var(--text); }
+.layer-diagram .arrow { text-align: center; color: var(--border); margin: 2px 0; }
+
+@media (max-width: 720px) {
+  body { flex-direction: column; }
+  nav { width: 100%; height: auto; position: static; border-right: none; border-bottom: 1px solid var(--border); }
+  main { padding: 1.2rem 1rem; }
+}

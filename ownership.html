@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ownership &amp; RAII — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html" class="active">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Ownership &amp; RAII</p>
+  <h1>Ownership &amp; RAII</h1>
+
+  <h2>Move-only resources</h2>
+  <p>Every resource class in easy-gl is <strong>non-copyable and movable</strong>. Copying is deleted because duplicating an OpenGL handle silently leads to double-free bugs when both copies are destroyed.</p>
+
+<pre><code><span class="ty">easygl</span>::<span class="ty">Buffer</span> a;
+a.<span class="fn">create</span>();
+
+<span class="cm">// ERROR — copy is deleted:</span>
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> b = a;
+
+<span class="cm">// OK — ownership transferred, a is now empty:</span>
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> b = std::move(a);
+<span class="cm">// a.is_created() == false now</span></code></pre>
+
+  <h2>RAII lifecycle</h2>
+  <p>The lifecycle has three phases:</p>
+  <table>
+    <tr><th>Phase</th><th>How</th><th>State</th></tr>
+    <tr><td>Empty</td><td>After default construction or after move-from</td><td><code>is_created() == false</code>, handle == 0</td></tr>
+    <tr><td>Created</td><td>After calling <code>create()</code></td><td><code>is_created() == true</code>, valid GL handle</td></tr>
+    <tr><td>Destroyed</td><td>Destructor runs, or <code>destroy()</code> called explicitly</td><td>GL handle freed, object back to empty state</td></tr>
+  </table>
+
+<pre><code>{
+    <span class="ty">easygl</span>::<span class="ty">Texture</span> tex;
+    <span class="cm">// tex.is_created() == false</span>
+
+    tex.<span class="fn">create</span>();
+    <span class="cm">// tex.is_created() == true, GL handle allocated</span>
+
+    tex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+    <span class="cm">// use tex ...</span>
+
+} <span class="cm">// tex.~Texture() called — GL handle freed automatically</span></code></pre>
+
+  <h2>Explicit destroy()</h2>
+  <p>You can release a resource early without waiting for the destructor:</p>
+<pre><code>tex.<span class="fn">destroy</span>();
+<span class="cm">// tex.is_created() == false — handle freed, object reusable</span>
+
+tex.<span class="fn">create</span>(); <span class="cm">// fine — allocate a new handle</span></code></pre>
+
+  <div class="note"><code>destroy()</code> is <code>noexcept</code>. Calling it on an already-empty object is safe.</div>
+
+  <h2>Move semantics in detail</h2>
+  <p>Move construction transfers ownership; the source becomes empty:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Buffer</span> loadBuffer(<span class="kw">const float</span>* data, <span class="kw">std::size_t</span> bytes)
+{
+    <span class="ty">easygl</span>::<span class="ty">Buffer</span> buf;
+    buf.<span class="fn">create</span>();
+    buf.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+    buf.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, data, bytes);
+    <span class="kw">return</span> buf; <span class="cm">// NRVO or move — no copy</span>
+}
+
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> vbo = <span class="fn">loadBuffer</span>(vertices, <span class="kw">sizeof</span>(vertices));
+<span class="cm">// vbo owns the GL handle; local buf inside the function is gone</span></code></pre>
+
+  <h2>Generation tracking</h2>
+  <p>Every resource has a <code>creation_generation()</code> counter and an <code>is_valid_for_current_generation()</code> check. This is designed for applications that recreate the OpenGL context (e.g. mobile context loss).</p>
+
+  <p>When a context is lost and recreated, all GPU handles become invalid. Generation tracking lets you detect stale handles without storing a separate "dirty" flag.</p>
+
+<pre><code><span class="kw">if</span> (!vbo.<span class="fn">is_valid_for_current_generation</span>()) {
+    vbo.<span class="fn">reset_handle_no_gl</span>(); <span class="cm">// discard stale handle (no GL call)</span>
+    vbo.<span class="fn">create</span>();            <span class="cm">// reallocate with new context</span>
+    <span class="cm">// re-upload data...</span>
+}</code></pre>
+
+  <div class="warn"><code>reset_handle_no_gl()</code> clears the stored handle <em>without calling any GL function</em>. Use it only after a context loss event when all previous handles are already invalid at the driver level.</div>
+
+  <h2>Storing resources in containers</h2>
+  <p>Because resources are move-only, use <code>std::move</code> when inserting into containers:</p>
+<pre><code>std::vector&lt;<span class="ty">easygl</span>::<span class="ty">Texture</span>&gt; textures;
+
+<span class="ty">easygl</span>::<span class="ty">Texture</span> t;
+t.<span class="fn">create</span>();
+textures.<span class="fn">push_back</span>(std::move(t));
+<span class="cm">// t is now empty; textures[0] owns the handle</span></code></pre>
+
+  <h2>native_handle()</h2>
+  <p>For interoperability with code that needs the raw OpenGL integer handle:</p>
+<pre><code><span class="ty">unsigned int</span> raw_id = vbo.<span class="fn">native_handle</span>();
+<span class="cm">// Pass to legacy code, imgui, or other libraries that want raw GL ids</span></code></pre>
+  <div class="warn">Do not call <code>glDelete*</code> on handles you got from <code>native_handle()</code>. The resource class still owns the handle and will try to delete it in its destructor.</div>
+</main>
+</body>
+</html>

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Config — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html" class="active">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Config</p>
+  <h1>Config</h1>
+  <p>A plain struct that controls Device behaviour. Pass it to the Device constructor before initializing.</p>
+
+<pre><code><span class="kw">struct</span> <span class="ty">Config</span> {
+    <span class="kw">bool</span> throw_on_missing_feature = <span class="kw">true</span>;
+    <span class="kw">bool</span> enable_debug_logging     = <span class="kw">false</span>;
+    <span class="kw">bool</span> validate_calls           = <span class="kw">true</span>;
+};</code></pre>
+
+  <h2>Fields</h2>
+  <table>
+    <tr><th>Field</th><th>Default</th><th>Effect</th></tr>
+    <tr><td><code>throw_on_missing_feature</code></td><td><code>true</code></td><td>When true, <code>device.require(Feature)</code> throws <code>Exception</code> if the feature is absent. Set false to silently continue and check features manually.</td></tr>
+    <tr><td><code>enable_debug_logging</code></td><td><code>false</code></td><td>When true, enables OpenGL debug output logging if the driver supports it.</td></tr>
+    <tr><td><code>validate_calls</code></td><td><code>true</code></td><td>When true, adds extra validation around certain calls. Disable for maximum-performance release builds.</td></tr>
+  </table>
+
+  <h2>Usage</h2>
+<pre><code><span class="cm">// Debug build: maximum feedback</span>
+<span class="ty">easygl</span>::<span class="ty">Config</span> debugCfg;
+debugCfg.throw_on_missing_feature = <span class="kw">true</span>;
+debugCfg.enable_debug_logging     = <span class="kw">true</span>;
+debugCfg.validate_calls           = <span class="kw">true</span>;
+<span class="ty">easygl</span>::<span class="ty">Device</span> device(debugCfg);
+
+<span class="cm">// Release build: minimum overhead</span>
+<span class="ty">easygl</span>::<span class="ty">Config</span> relCfg;
+relCfg.throw_on_missing_feature = <span class="kw">true</span>;
+relCfg.enable_debug_logging     = <span class="kw">false</span>;
+relCfg.validate_calls           = <span class="kw">false</span>;
+<span class="ty">easygl</span>::<span class="ty">Device</span> device(relCfg);</code></pre>
+
+  <div class="tip">Use C++20 designated initialisers for a compact one-liner:<br>
+  <code>easygl::Device device({ .enable_debug_logging = true });</code>
+  </div>
+</main>
+</body>
+</html>

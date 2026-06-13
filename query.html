@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Query — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html" class="active">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Query</p>
+  <h1>Query</h1>
+  <p>Measures GPU statistics such as sample counts, primitives written, or elapsed time. Non-copyable, movable, RAII.</p>
+
+  <h2>Common QueryTarget values</h2>
+  <table>
+    <tr><th>Value</th><th>Measures</th></tr>
+    <tr><td><code>QueryTarget::SamplesPassed</code></td><td>Fragments that pass depth/stencil (exact)</td></tr>
+    <tr><td><code>QueryTarget::AnySamplesPassed</code></td><td>Whether any fragment passed (conservative, cheaper)</td></tr>
+    <tr><td><code>QueryTarget::PrimitivesGenerated</code></td><td>Number of primitives generated</td></tr>
+    <tr><td><code>QueryTarget::TransformFeedbackPrimitivesWritten</code></td><td>Primitives written by transform feedback</td></tr>
+    <tr><td><code>QueryTarget::TimeElapsed</code></td><td>GPU time in nanoseconds for the bracketed commands</td></tr>
+    <tr><td><code>QueryTarget::Timestamp</code></td><td>Current GPU timestamp</td></tr>
+  </table>
+
+  <h2>Occlusion query</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Query</span> occQuery;
+occQuery.<span class="fn">create</span>();
+
+occQuery.<span class="fn">begin</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">SamplesPassed</span>);
+device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, mesh.vertexCount);
+occQuery.<span class="fn">end</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">SamplesPassed</span>);
+
+<span class="cm">// Wait for result to be available (busy wait — in practice use latency buffering)</span>
+<span class="kw">while</span> (!occQuery.<span class="fn">is_result_available</span>()) { <span class="cm">/* wait */</span> }
+
+<span class="kw">unsigned int</span> sampleCount = occQuery.<span class="fn">result</span>();
+std::cout &lt;&lt; <span class="st">"Samples passed: "</span> &lt;&lt; sampleCount &lt;&lt; <span class="st">'\n'</span>;</code></pre>
+
+  <h2>Conservative occlusion (cheaper)</h2>
+<pre><code>occQuery.<span class="fn">begin</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">AnySamplesPassed</span>);
+<span class="cm">// draw bounding box ...</span>
+occQuery.<span class="fn">end</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">AnySamplesPassed</span>);
+
+<span class="cm">// Next frame: skip rendering if result is 0</span>
+<span class="kw">if</span> (occQuery.<span class="fn">is_result_available</span>() &amp;&amp; occQuery.<span class="fn">result</span>() == <span class="nm">0</span>) {
+    <span class="cm">// object was fully occluded last frame</span>
+}</code></pre>
+
+  <h2>GPU timing</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Query</span> timeQuery;
+timeQuery.<span class="fn">create</span>();
+
+timeQuery.<span class="fn">begin</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">TimeElapsed</span>);
+<span class="cm">// ... render pass ...</span>
+timeQuery.<span class="fn">end</span>(<span class="ty">easygl</span>::<span class="ty">QueryTarget</span>::<span class="nm">TimeElapsed</span>);
+
+<span class="kw">while</span> (!timeQuery.<span class="fn">is_result_available</span>()) {}
+<span class="kw">unsigned int</span> nanoseconds = timeQuery.<span class="fn">result</span>();
+std::cout &lt;&lt; <span class="st">"GPU time: "</span> &lt;&lt; nanoseconds / <span class="nm">1e6</span> &lt;&lt; <span class="st">" ms\n"</span>;</code></pre>
+
+  <div class="note">For accurate GPU timing, use double-buffered queries to avoid stalling the CPU. Query the previous frame's result while submitting the current frame.</div>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL query handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>begin(target)</code></td><td>Start the query for the given target.</td></tr>
+    <tr><td><code>end(target)</code></td><td>End the query.</td></tr>
+    <tr><td><code>is_result_available()</code></td><td>True when the GPU has completed the query.</td></tr>
+    <tr><td><code>result()</code></td><td>Retrieve the query result (blocks until available).</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Renderbuffer — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html" class="active">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Renderbuffer</p>
+  <h1>Renderbuffer</h1>
+  <p>Manages an OpenGL Renderbuffer Object (RBO). Renderbuffers are optimised storage for framebuffer attachments that do not need to be sampled in shaders — typically depth and stencil.</p>
+
+  <h2>When to use Renderbuffer vs Texture</h2>
+  <table>
+    <tr><th>Use</th><th>Renderbuffer</th><th>Texture</th></tr>
+    <tr><td>Sample in shader</td><td>No</td><td>Yes</td></tr>
+    <tr><td>Driver storage efficiency</td><td>Usually better</td><td>General purpose</td></tr>
+    <tr><td>MSAA storage</td><td>Yes</td><td>Yes (Texture2DMultisample)</td></tr>
+    <tr><td>Depth/stencil</td><td>Common choice</td><td>Needed for shadow maps</td></tr>
+  </table>
+
+  <h2>Depth renderbuffer</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Renderbuffer</span> depthRbo;
+depthRbo.<span class="fn">create</span>();
+depthRbo.<span class="fn">bind</span>();
+depthRbo.<span class="fn">set_storage</span>(<span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">DepthComponent24</span>, width, height);</code></pre>
+
+  <h2>Depth + stencil packed</h2>
+<pre><code>depthStencilRbo.<span class="fn">set_storage</span>(
+    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Depth24Stencil8</span>, width, height);</code></pre>
+
+  <h2>MSAA renderbuffer</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Renderbuffer</span> msColor;
+msColor.<span class="fn">create</span>();
+msColor.<span class="fn">bind</span>();
+msColor.<span class="fn">set_storage_multisample</span>(
+    <span class="nm">4</span>,                                    <span class="cm">// 4× MSAA samples</span>
+    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>,
+    width, height);</code></pre>
+
+  <h2>Attaching to a framebuffer</h2>
+<pre><code>fbo.<span class="fn">attach_renderbuffer</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
+    depthRbo.<span class="fn">native_handle</span>());</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL RBO handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind()</code></td><td>Bind to GL_RENDERBUFFER target.</td></tr>
+    <tr><td><code>unbind() [static]</code></td><td>Bind renderbuffer 0.</td></tr>
+    <tr><td><code>set_storage(format, width, height)</code></td><td>Allocate storage for the renderbuffer.</td></tr>
+    <tr><td><code>set_storage_multisample(samples, format, w, h)</code></td><td>Allocate MSAA storage.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>
