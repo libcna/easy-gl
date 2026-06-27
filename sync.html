@@ -95,7 +95,7 @@ fences[frameIndex].<span class="fn">fence</span>();
     <tr><td><code>client_wait(flags, timeout_ns)</code></td><td>CPU waits for the sync. Returns a <code>SyncWaitResult</code>.</td></tr>
     <tr><td><code>server_wait(timeout_ns)</code></td><td>GPU-side wait — subsequent commands stall until sync is signalled.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if sync handle is set.</td></tr>
-    <tr><td><code>native_handle()</code></td><td>Returns raw <code>__GLsync*</code> pointer.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Returns raw <code>GLsync</code> (= <code>metagl::GLsync</code>) handle.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery — clear without deleting.</td></tr>
   </table>
 </main>

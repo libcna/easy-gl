@@ -53,7 +53,7 @@ prog.<span class="fn">attach_owned</span>(vert);
 
 <span class="kw">const char</span>* varyings[] = { <span class="st">"vPosition"</span>, <span class="st">"vVelocity"</span> };
 <span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">set_varyings</span>(
-    prog.<span class="fn">native_handle</span>(),
+    prog,
     {varyings, <span class="nm">2</span>},
     <span class="ty">easygl</span>::<span class="ty">TransformFeedbackBufferMode</span>::<span class="nm">SeparateAttribs</span>);
 
@@ -116,7 +116,7 @@ device.<span class="fn">draw_arrays</span>(...);
     <tr><td><code>end() [static]</code></td><td>End recording.</td></tr>
     <tr><td><code>pause() [static]</code></td><td>Temporarily suspend recording.</td></tr>
     <tr><td><code>resume() [static]</code></td><td>Resume recording after pause.</td></tr>
-    <tr><td><code>set_varyings(prog, varyings, mode) [static]</code></td><td>Specify captured varyings (must be called before link).</td></tr>
+    <tr><td><code>set_varyings(prog, varyings, mode) [static]</code></td><td>Specify captured varyings before link (<code>prog</code> is <code>const Program&amp;</code>).</td></tr>
     <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>

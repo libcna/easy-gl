@@ -102,8 +102,15 @@ prog.<span class="fn">set_uniform_matrix3x4</span>(prog.<span class="fn">uniform
 prog.<span class="fn">set_uniform_matrix4</span>(loc, data, <span class="kw">false</span>);</code></pre>
 
   <h2>Uniform blocks (UBOs)</h2>
-<pre><code><span class="kw">unsigned int</span> blockIdx = prog.<span class="fn">uniform_block_index</span>(<span class="st">"Matrices"</span>);
-prog.<span class="fn">set_uniform_block_binding</span>(blockIdx, <span class="nm">0</span>); <span class="cm">// bind block to point 0</span>
+<pre><code><span class="kw">auto</span> blockIdx = prog.<span class="fn">uniform_block_index</span>(<span class="st">"Matrices"</span>); <span class="cm">// returns std::optional&lt;unsigned int&gt;</span>
+<span class="kw">if</span> (blockIdx.<span class="fn">has_value</span>()) {
+    prog.<span class="fn">set_uniform_block_binding</span>(*blockIdx, <span class="nm">0</span>); <span class="cm">// bind block to point 0</span>
+}
+
+<span class="cm">// C++17 if-init shorthand:</span>
+<span class="cm">// if (auto idx = prog.uniform_block_index("Matrices")) {</span>
+<span class="cm">//     prog.set_uniform_block_binding(*idx, 0);</span>
+<span class="cm">// }</span>
 
 <span class="cm">// Then bind the Buffer to the same point:</span>
 ubo.<span class="fn">bind_base</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>, <span class="nm">0</span>);</code></pre>
@@ -126,6 +133,8 @@ std::cout &lt;&lt; prog.<span class="fn">info_log</span>() &lt;&lt; <span class=
     <tr><th>Method</th><th>Description</th></tr>
     <tr><td><code>Program()</code></td><td>Default construction — empty, no GL handle yet.</td></tr>
     <tr><td><code>Program(vertSrc, fragSrc)</code></td><td>Compile &amp; link in one step. Throws on failure.</td></tr>
+    <tr><td><code>from_sources(v, f) [static]</code></td><td>Static factory: create from vertex + fragment sources.</td></tr>
+    <tr><td><code>from_sources(v, g, f) [static]</code></td><td>Static factory: create from vertex + geometry + fragment sources.</td></tr>
     <tr><td><code>create()</code></td><td>Allocate GL program handle.</td></tr>
     <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
     <tr><td><code>attach(shader)</code></td><td>Attach shader (const ref, no ownership transfer).</td></tr>
@@ -141,14 +150,28 @@ std::cout &lt;&lt; prog.<span class="fn">info_log</span>() &lt;&lt; <span class=
     <tr><td><code>uniform_location(name)</code></td><td>Get uniform location by name.</td></tr>
     <tr><td><code>set_uniform(loc, ...)</code></td><td>Overloaded: float/int/uint scalars and vectors.</td></tr>
     <tr><td><code>set_uniform_fv(loc, span, components)</code></td><td>Float array uniform.</td></tr>
+    <tr><td><code>set_uniform_iv(loc, span, components)</code></td><td>Integer array uniform.</td></tr>
+    <tr><td><code>set_uniform_uiv(loc, span, components)</code></td><td>Unsigned int array uniform.</td></tr>
     <tr><td><code>set_uniform_matrix2..4(loc, data, transpose)</code></td><td>Square matrix uniforms.</td></tr>
     <tr><td><code>set_uniform_matrix2x3..4x3(loc, data, transpose)</code></td><td>Non-square matrix uniforms.</td></tr>
-    <tr><td><code>uniform_block_index(name)</code></td><td>Get UBO block index by name.</td></tr>
+    <tr><td><code>uniform_block_index(name)</code></td><td>Returns <code>std::optional&lt;unsigned int&gt;</code>. Nullopt if block not found.</td></tr>
     <tr><td><code>set_uniform_block_binding(idx, point)</code></td><td>Bind UBO block to binding point.</td></tr>
     <tr><td><code>is_linked()</code></td><td>True after successful link.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+
+  <h2>Separable program uniforms (ProgramPipeline)</h2>
+  <p>These methods set uniforms directly on the program object without requiring it to be bound via <code>use()</code>. Required when using programs with <a href="program-pipeline.html">ProgramPipeline</a>.</p>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>set_program_uniform(loc, ...)</code></td><td>Set float/int/uint scalar or vector uniform without binding.</td></tr>
+    <tr><td><code>set_program_uniform_fv(loc, span, components)</code></td><td>Float array uniform for separable program.</td></tr>
+    <tr><td><code>set_program_uniform_iv(loc, span, components)</code></td><td>Int array uniform for separable program.</td></tr>
+    <tr><td><code>set_program_uniform_uiv(loc, span, components)</code></td><td>Unsigned int array uniform for separable program.</td></tr>
+    <tr><td><code>set_program_uniform_matrix2..4(loc, data, transpose)</code></td><td>Square matrix uniforms for separable program.</td></tr>
+    <tr><td><code>set_program_uniform_matrix2x3..4x3(loc, data, transpose)</code></td><td>Non-square matrix uniforms for separable program.</td></tr>
   </table>
 </main>
 </body>

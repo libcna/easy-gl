@@ -140,6 +140,19 @@ vbo.<span class="fn">unmap</span>(<span class="ty">easygl</span>::<span class="t
     <span class="nm">0</span>,       <span class="cm">// dest offset</span>
     copySize);</code></pre>
 
+  <h2>Factory helpers</h2>
+  <p>Static template methods that create, bind, and upload in one call:</p>
+<pre><code><span class="cm">// Create vertex buffer from a span:</span>
+std::vector&lt;<span class="kw">float</span>&gt; verts = { <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>, <span class="nm">0.5f</span> };
+<span class="kw">auto</span> vbo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_vertex_buffer</span>(std::span&lt;<span class="kw">const float</span>&gt;(verts));
+
+<span class="cm">// Create index buffer from a span:</span>
+std::vector&lt;<span class="kw">unsigned int</span>&gt; idx = { <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span> };
+<span class="kw">auto</span> ibo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_index_buffer</span>(std::span&lt;<span class="kw">const unsigned int</span>&gt;(idx));
+
+<span class="cm">// Create empty UBO of given size:</span>
+<span class="kw">auto</span> ubo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_uniform_buffer</span>(<span class="kw">sizeof</span>(<span class="ty">Matrices</span>));</code></pre>
+
   <h2>Method reference</h2>
   <table>
     <tr><th>Method</th><th>Description</th></tr>
@@ -156,6 +169,10 @@ vbo.<span class="fn">unmap</span>(<span class="ty">easygl</span>::<span class="t
     <tr><td><code>flush_mapped_range(target, offset, length)</code></td><td>Flush a mapped write range.</td></tr>
     <tr><td><code>unmap(target)</code></td><td>Unmap the buffer. Returns false on data corruption.</td></tr>
     <tr><td><code>copy_sub_data(...) [static]</code></td><td>GPU-side buffer copy.</td></tr>
+    <tr><td><code>create_vertex_buffer(span, usage) [static]</code></td><td>Create and upload a vertex buffer in one call.</td></tr>
+    <tr><td><code>create_index_buffer(span, usage) [static]</code></td><td>Create and upload an index buffer in one call.</td></tr>
+    <tr><td><code>create_uniform_buffer(size, usage) [static]</code></td><td>Create an empty UBO of the given byte size.</td></tr>
+    <tr><td><code>is_valid_gl_object()</code></td><td>True if the GL handle is currently valid.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if handle is allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL handle integer.</td></tr>
     <tr><td><code>is_valid_for_current_generation()</code></td><td>False if context was lost and recreated.</td></tr>

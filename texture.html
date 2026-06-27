@@ -147,6 +147,17 @@ ms.<span class="fn">set_storage_2d_multisample</span>(
     <tr><td><code>InternalFormat::Srgb8Alpha8</code></td><td>4 sRGB</td><td>8</td></tr>
   </table>
 
+  <h2>Factory helpers</h2>
+  <p>Static helpers that allocate immutable storage and optionally upload pixels in one call:</p>
+<pre><code><span class="cm">// Allocate an empty RGBA8 texture (useful as FBO attachment):</span>
+<span class="kw">auto</span> colorTex = <span class="ty">easygl</span>::<span class="ty">Texture</span>::<span class="fn">create_2d</span>(width, height);
+
+<span class="cm">// Upload RGBA8 pixel data in one call:</span>
+<span class="kw">auto</span> tex = <span class="ty">easygl</span>::<span class="ty">Texture</span>::<span class="fn">create_2d_rgba8</span>(width, height, pixelData);
+
+<span class="cm">// With mipmaps:</span>
+<span class="kw">auto</span> texMip = <span class="ty">easygl</span>::<span class="ty">Texture</span>::<span class="fn">create_2d_rgba8</span>(width, height, pixelData, <span class="kw">true</span>);</code></pre>
+
   <h2>Method reference</h2>
   <table>
     <tr><th>Method</th><th>Description</th></tr>
@@ -165,7 +176,12 @@ ms.<span class="fn">set_storage_2d_multisample</span>(
     <tr><td><code>set_compressed_image_2d(...)</code></td><td>Upload compressed 2D data (DXT/BC/etc.).</td></tr>
     <tr><td><code>set_compressed_image_3d(...)</code></td><td>Upload compressed 3D data.</td></tr>
     <tr><td><code>generate_mipmap(target)</code></td><td>Auto-generate full mip chain.</td></tr>
+    <tr><td><code>copy_image_2d(target, level, format, x, y, w, h)</code></td><td>Copy framebuffer region into texture (mutable).</td></tr>
+    <tr><td><code>copy_sub_image_2d(target, level, xoff, yoff, x, y, w, h)</code></td><td>Copy framebuffer region into a texture subregion.</td></tr>
+    <tr><td><code>copy_image_sub_data(src, ..., dst, ...) [static]</code></td><td>GPU-side copy between two textures (or renderbuffers).</td></tr>
     <tr><td><code>bind_image(unit, level, layered, layer, access, format)</code></td><td>Bind for image load/store (compute).</td></tr>
+    <tr><td><code>create_2d(w, h, format, mipmaps) [static]</code></td><td>Create empty 2D texture with immutable storage.</td></tr>
+    <tr><td><code>create_2d_rgba8(w, h, pixels, mipmaps) [static]</code></td><td>Create 2D RGBA8 texture and upload pixels.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if handle is allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>

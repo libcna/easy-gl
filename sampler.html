@@ -52,6 +52,13 @@
     <li>Useful for atlases where different draw calls need different wrap modes on the same texture.</li>
   </ul>
 
+  <h2>Factory helpers</h2>
+  <p>Pre-built samplers for common configurations:</p>
+<pre><code><span class="kw">auto</span> linearClamp  = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_linear_clamp</span>();   <span class="cm">// linear filter, clamp to edge</span>
+<span class="kw">auto</span> nearestClamp = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_nearest_clamp</span>();  <span class="cm">// nearest filter, clamp to edge</span>
+<span class="kw">auto</span> linearRepeat = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_linear_repeat</span>();  <span class="cm">// linear filter, repeat wrap</span>
+<span class="kw">auto</span> mipLinear    = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_mipmap_linear</span>();  <span class="cm">// trilinear mipmap, repeat wrap</span></code></pre>
+
   <h2>Creating a trilinear sampler</h2>
 <pre><code><span class="ty">easygl</span>::<span class="ty">Sampler</span> trilinear;
 trilinear.<span class="fn">create</span>();
@@ -95,6 +102,10 @@ shadowSampler.<span class="fn">bind</span>(<span class="nm">3</span>); <span cla
     <tr><td><code>unbind(unit) [static]</code></td><td>Bind sampler 0 to unit.</td></tr>
     <tr><td><code>set_parameter(pname, int)</code></td><td>Set an integer sampler parameter.</td></tr>
     <tr><td><code>set_parameter(pname, float)</code></td><td>Set a float sampler parameter (e.g. LOD bias).</td></tr>
+    <tr><td><code>create_linear_clamp() [static]</code></td><td>Linear filter, clamp-to-edge wrap.</td></tr>
+    <tr><td><code>create_nearest_clamp() [static]</code></td><td>Nearest filter, clamp-to-edge wrap.</td></tr>
+    <tr><td><code>create_linear_repeat() [static]</code></td><td>Linear filter, repeat wrap.</td></tr>
+    <tr><td><code>create_mipmap_linear() [static]</code></td><td>Trilinear mipmap, repeat wrap.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>

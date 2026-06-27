@@ -68,13 +68,13 @@ fbo.<span class="fn">attach_texture_2d</span>(
     <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
     <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>,
     <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
-    colorTex.<span class="fn">native_handle</span>(),
+    colorTex,
     <span class="nm">0</span>); <span class="cm">// mip level</span>
 
 fbo.<span class="fn">attach_renderbuffer</span>(
     <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
     <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
-    depthRbo.<span class="fn">native_handle</span>());
+    depthRbo);
 
 <span class="kw">if</span> (!fbo.<span class="fn">is_complete</span>()) {
     std::cerr &lt;&lt; <span class="st">"FBO incomplete!\n"</span>;
@@ -82,8 +82,8 @@ fbo.<span class="fn">attach_renderbuffer</span>(
 
   <h2>MRT — multiple render targets</h2>
 <pre><code><span class="cm">// Attach two color textures</span>
-fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>, ..., albedoTex.<span class="fn">native_handle</span>(), <span class="nm">0</span>);
-fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color1</span>, ..., normalTex.<span class="fn">native_handle</span>(), <span class="nm">0</span>);
+fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>, ..., albedoTex, <span class="nm">0</span>);
+fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color1</span>, ..., normalTex, <span class="nm">0</span>);
 
 <span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span> bufs[] = {
     <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span>::<span class="nm">ColorAttachment0</span>,
@@ -106,7 +106,7 @@ shadowFbo.<span class="fn">attach_texture_2d</span>(
     <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
     <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
     <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
-    shadowTex.<span class="fn">native_handle</span>(), <span class="nm">0</span>);
+    shadowTex, <span class="nm">0</span>);
 
 <span class="cm">// No color — tell GL explicitly:</span>
 <span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span> none[] = { <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span>::<span class="nm">None</span> };
@@ -133,15 +133,18 @@ resolveFbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span cl
     <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
     <tr><td><code>bind(target)</code></td><td>Bind to Framebuffer, Read or Draw target.</td></tr>
     <tr><td><code>unbind(target) [static]</code></td><td>Bind FBO 0.</td></tr>
-    <tr><td><code>attach_texture_2d(target, attachment, texTarget, texture, level)</code></td><td>Attach a 2D texture.</td></tr>
-    <tr><td><code>attach_texture_layer(target, attachment, texture, level, layer)</code></td><td>Attach a layer of a 3D or array texture.</td></tr>
-    <tr><td><code>attach_renderbuffer(target, attachment, renderbuffer)</code></td><td>Attach a renderbuffer.</td></tr>
+    <tr><td><code>attach_texture_2d(target, attachment, texTarget, texture, level)</code></td><td>Attach a 2D texture (<code>const Texture&amp;</code>).</td></tr>
+    <tr><td><code>attach_texture_layer(target, attachment, texture, level, layer)</code></td><td>Attach a layer of a 3D or array texture (<code>const Texture&amp;</code>).</td></tr>
+    <tr><td><code>attach_renderbuffer(target, attachment, renderbuffer)</code></td><td>Attach a renderbuffer (<code>const Renderbuffer&amp;</code>).</td></tr>
     <tr><td><code>check_status(target)</code></td><td>Returns FramebufferStatus enum.</td></tr>
     <tr><td><code>is_complete(target)</code></td><td>True if status == Complete.</td></tr>
     <tr><td><code>set_draw_buffers(span)</code></td><td>Set draw buffer targets for MRT.</td></tr>
     <tr><td><code>set_read_buffer(src)</code></td><td>Set read buffer source.</td></tr>
     <tr><td><code>invalidate(target, attachments)</code></td><td>Hint that attachment data is no longer needed.</td></tr>
+    <tr><td><code>invalidate_sub(target, attachments, x, y, w, h)</code></td><td>Invalidate a sub-region of attachments.</td></tr>
     <tr><td><code>blit(...) [static]</code></td><td>Copy/resolve between read and draw framebuffers.</td></tr>
+    <tr><td><code>blit_to(dst, ...) const</code></td><td>Instance method to blit from this FBO to another.</td></tr>
+    <tr><td><code>create_color_depth(color, depth) [static]</code></td><td>Create FBO with one color texture and one depth renderbuffer.</td></tr>
     <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
     <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
     <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
