@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResourceRegistry — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html" class="active">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › ResourceRegistry</p>
+  <h1>ResourceRegistry</h1>
+  <p>Central registry that tracks <a href="recoverable-resource.html">RecoverableResource</a> instances and drives the context-lost / context-restored cycle. Implements <code>metagl::ContextListener</code> so it receives automatic notifications from meta-gl when the context changes.</p>
+
+  <h2>Setup</h2>
+  <p>Create one registry per application, register it with meta-gl once, then add all recoverable resources to it:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">ResourceRegistry</span> registry;
+registry.<span class="fn">register_with_meta_gl</span>(); <span class="cm">// subscribe to context events</span>
+
+<span class="cm">// Register each recoverable resource:</span>
+registry.<span class="fn">add</span>(&amp;myTexture);
+registry.<span class="fn">add</span>(&amp;myVertexBuffer);</code></pre>
+
+  <h2>Context-loss flow</h2>
+  <p>When meta-gl detects a context loss, it calls <code>registry.OnContextLost()</code> automatically. The registry then calls <code>release_gl_handle_only()</code> on every registered resource — no GL functions are issued, only the stored handles are cleared.</p>
+  <p>When the context is restored and a new loader is provided, meta-gl calls <code>registry.OnContextRestored()</code>. The registry calls <code>recreate_gl_resource()</code> on every resource, which recreates the GPU objects from their stored CPU data.</p>
+
+  <h2>RAII registration with ResourceRegistration</h2>
+  <p><code>ResourceRegistration</code> is a helper that registers a resource in its constructor and unregisters it in its destructor. Use it for resources with a bounded lifetime:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">ResourceRegistry</span> registry;
+registry.<span class="fn">register_with_meta_gl</span>();
+
+{
+    <span class="ty">MyTexture</span> temporaryTex;
+    temporaryTex.<span class="fn">load</span>(<span class="nm">256</span>, <span class="nm">256</span>, pixelData);
+
+    <span class="ty">easygl</span>::<span class="ty">ResourceRegistration</span> reg(registry, temporaryTex);
+    <span class="cm">// temporaryTex is now registered for context-loss callbacks</span>
+
+    <span class="cm">// ... use temporaryTex ...</span>
+
+} <span class="cm">// reg destructor calls registry.remove(&amp;temporaryTex)</span></code></pre>
+
+  <div class="warn">The caller retains ownership of every resource pointer passed to <code>add()</code>. Pointers must remain valid until <code>remove()</code> is called or the registry is destroyed.</div>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>add(resource*)</code></td><td>Register a resource for context-event notifications.</td></tr>
+    <tr><td><code>remove(resource*)</code></td><td>Unregister a resource. No-op if not found.</td></tr>
+    <tr><td><code>register_with_meta_gl()</code></td><td>Subscribe this registry to meta-gl context events.</td></tr>
+    <tr><td><code>unregister_from_meta_gl()</code></td><td>Unsubscribe from meta-gl context events.</td></tr>
+    <tr><td><code>OnContextLost()</code></td><td>Called by meta-gl on context loss. Calls <code>release_gl_handle_only()</code> on all resources.</td></tr>
+    <tr><td><code>OnContextRestored()</code></td><td>Called by meta-gl after context restoration. Calls <code>recreate_gl_resource()</code> on all resources.</td></tr>
+  </table>
+
+  <h2>ResourceRegistration method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>ResourceRegistration(registry, resource)</code></td><td>Register <code>resource</code> with <code>registry</code> immediately.</td></tr>
+    <tr><td><code>~ResourceRegistration()</code></td><td>Unregister the resource from the registry.</td></tr>
+  </table>
+</main>
+</body>
+</html>

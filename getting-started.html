@@ -26,6 +26,7 @@
   <a href="texture.html">Texture</a>
   <a href="shader.html">Shader</a>
   <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
   <a href="vertex-array.html">VertexArray</a>
   <a href="framebuffer.html">Framebuffer</a>
   <a href="renderbuffer.html">Renderbuffer</a>
@@ -33,6 +34,12 @@
   <a href="query.html">Query</a>
   <a href="sync.html">Sync</a>
   <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
   <h3>Examples</h3>
   <a href="example-hello-triangle.html">Hello Triangle</a>
   <a href="example-textured-quad.html">Textured Quad</a>
@@ -47,7 +54,7 @@
   <h2>Prerequisites</h2>
   <ul>
     <li>C++20 compiler (GCC 10+, Clang 12+, MSVC 2019 16.8+)</li>
-    <li>CMake 3.21+</li>
+    <li>CMake 3.23+</li>
     <li>meta-gl library (easy-gl depends on it)</li>
     <li>An OpenGL context provider (SDL3, GLFW, SFML, etc.)</li>
   </ul>
@@ -55,7 +62,7 @@
   <h2>CMake integration</h2>
   <p>Add easy-gl and meta-gl as subdirectories or use <code>FetchContent</code>:</p>
 <pre><code><span class="cm"># CMakeLists.txt</span>
-<span class="fn">cmake_minimum_required</span>(VERSION 3.21)
+<span class="fn">cmake_minimum_required</span>(VERSION 3.23)
 <span class="fn">project</span>(MyApp)
 
 <span class="fn">include</span>(FetchContent)
