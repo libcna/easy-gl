@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hello Triangle — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html" class="active">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Hello Triangle</p>
+  <h1>Hello Triangle</h1>
+  <p>A complete, annotated, minimal example using SDL3 + easy-gl. Renders a colour-animated triangle using a vertex buffer, VAO, and a shader program.</p>
+
+  <h2>Vertex shader</h2>
+<pre><code><span class="kw">const char</span>* vertSrc = <span class="st">R"(#version 330 core
+layout (location = 0) in vec3 aPos;
+layout (location = 1) in vec3 aColor;
+out vec3 vertexColor;
+void main() {
+    gl_Position = vec4(aPos, 1.0);
+    vertexColor = aColor;
+})"</span>;</code></pre>
+
+  <h2>Fragment shader</h2>
+<pre><code><span class="kw">const char</span>* fragSrc = <span class="st">R"(#version 330 core
+in vec3 vertexColor;
+uniform vec4 uTint;
+out vec4 FragColor;
+void main() {
+    FragColor = vec4(vertexColor, 1.0) * uTint;
+})"</span>;</code></pre>
+
+  <h2>Vertex data</h2>
+<pre><code><span class="kw">constexpr float</span> vertices[] = {
+    <span class="cm">// position          color</span>
+    <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>,   <span class="nm">1.0f</span>, <span class="nm">0.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>,   <span class="nm">0.0f</span>, <span class="nm">1.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.0f</span>,  <span class="nm">0.5f</span>, <span class="nm">0.0f</span>,   <span class="nm">0.0f</span>, <span class="nm">0.0f</span>, <span class="nm">1.0f</span>,
+};</code></pre>
+
+  <h2>Full main()</h2>
+<pre><code><span class="kw">int</span> <span class="fn">main</span>(<span class="kw">int</span>, <span class="kw">char</span>**)
+{
+    <span class="cm">// ---- SDL3 window + context ----</span>
+    SDL_Init(SDL_INIT_VIDEO);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, <span class="nm">3</span>);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, <span class="nm">3</span>);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, <span class="nm">1</span>);
+
+    <span class="ty">SDL_Window</span>*    window  = SDL_CreateWindow(<span class="st">"Hello Triangle"</span>, <span class="nm">800</span>, <span class="nm">600</span>, SDL_WINDOW_OPENGL);
+    <span class="ty">SDL_GLContext</span>  glCtx   = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, glCtx);
+    SDL_GL_SetSwapInterval(<span class="nm">1</span>);
+
+    <span class="cm">// ---- easy-gl resources in a scope so they are destroyed before the context ----</span>
+    {
+        <span class="ty">easygl</span>::<span class="ty">Device</span> device;
+        device.<span class="fn">initialize</span>(
+            reinterpret_cast&lt;<span class="ty">easygl</span>::<span class="ty">GLGetProcAddressFn</span>&gt;(SDL_GL_GetProcAddress));
+
+        <span class="cm">// Print GPU info</span>
+        <span class="kw">const auto</span>&amp; info = device.<span class="fn">capabilities</span>().<span class="fn">context_info</span>();
+        std::cout &lt;&lt; info.vendor &lt;&lt; <span class="st">" / "</span> &lt;&lt; info.renderer &lt;&lt; <span class="st">'\n'</span>;
+
+        <span class="cm">// Compile and link program in one call</span>
+        <span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertSrc, fragSrc);
+        <span class="kw">const int</span> tintLoc = prog.<span class="fn">uniform_location</span>(<span class="st">"uTint"</span>);
+
+        <span class="cm">// VAO + VBO</span>
+        <span class="ty">easygl</span>::<span class="ty">VertexArray</span> vao;
+        <span class="ty">easygl</span>::<span class="ty">Buffer</span>      vbo;
+        vao.<span class="fn">create</span>();
+        vbo.<span class="fn">create</span>();
+
+        vao.<span class="fn">bind</span>();
+        vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+        vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, vertices, <span class="kw">sizeof</span>(vertices));
+
+        <span class="kw">constexpr std::size_t</span> stride = <span class="nm">6</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>);
+        vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{<span class="nm">0</span>, <span class="nm">3</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, stride, <span class="nm">0</span>, <span class="kw">true</span>});
+        vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{<span class="nm">1</span>, <span class="nm">3</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, stride, <span class="nm">3</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>), <span class="kw">true</span>});
+
+        <span class="cm">// Set initial viewport</span>
+        <span class="kw">int</span> w = <span class="nm">0</span>, h = <span class="nm">0</span>;
+        SDL_GetWindowSizeInPixels(window, &amp;w, &amp;h);
+        device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, w, h);
+
+        <span class="cm">// ---- Render loop ----</span>
+        <span class="kw">bool</span> running = <span class="kw">true</span>;
+        <span class="kw">while</span> (running) {
+            <span class="ty">SDL_Event</span> ev;
+            <span class="kw">while</span> (SDL_PollEvent(&amp;ev)) {
+                <span class="kw">if</span> (ev.type == SDL_EVENT_QUIT) running = <span class="kw">false</span>;
+                <span class="kw">if</span> (ev.type == SDL_EVENT_KEY_DOWN &amp;&amp; ev.key.key == SDLK_ESCAPE) running = <span class="kw">false</span>;
+                <span class="kw">if</span> (ev.type == SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED)
+                    device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, ev.window.data1, ev.window.data2);
+            }
+
+            device.<span class="fn">set_clear_color</span>(<span class="nm">0.2f</span>, <span class="nm">0.3f</span>, <span class="nm">0.3f</span>, <span class="nm">1.0f</span>);
+            device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span>);
+
+            <span class="cm">// Animate tint with time</span>
+            <span class="kw">const float</span> t     = <span class="kw">static_cast</span>&lt;<span class="kw">float</span>&gt;(SDL_GetTicks()) / <span class="nm">1000.0f</span>;
+            <span class="kw">const float</span> green = std::<span class="fn">sin</span>(t) * <span class="nm">0.5f</span> + <span class="nm">0.5f</span>;
+
+            prog.<span class="fn">use</span>();
+            prog.<span class="fn">set_uniform</span>(tintLoc, <span class="nm">0.7f</span>, green, <span class="nm">1.0f</span>, <span class="nm">1.0f</span>);
+
+            vao.<span class="fn">bind</span>();
+            device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">3</span>);
+
+            SDL_GL_SwapWindow(window);
+        }
+    } <span class="cm">// vao, vbo, prog, device — all destroyed here</span>
+
+    SDL_GL_DestroyContext(glCtx);
+    SDL_DestroyWindow(window);
+    SDL_Quit();
+    <span class="kw">return</span> <span class="nm">0</span>;
+}</code></pre>
+
+  <h2>Key points</h2>
+  <ul>
+    <li>All easy-gl objects live in a scope that ends <em>before</em> <code>SDL_GL_DestroyContext</code>.</li>
+    <li><code>Program(vertSrc, fragSrc)</code> compiles and links in one step — no separate Shader objects needed.</li>
+    <li><code>VertexAttribute</code> struct aggregates index, component count, type, stride and offset in one readable call.</li>
+    <li>The tint uniform is updated every frame via <code>set_uniform(loc, r, g, b, a)</code>.</li>
+    <li><code>ClearFlags::Color</code> is a bitmask — use <code>|</code> to combine with <code>ClearFlags::Depth</code>.</li>
+  </ul>
+</main>
+</body>
+</html>

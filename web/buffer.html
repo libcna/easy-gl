@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buffer — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html" class="active">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Buffer</p>
+  <h1>Buffer</h1>
+  <p>Manages a single OpenGL buffer object (VBO, IBO, UBO, SSBO, etc.). Non-copyable, movable, RAII.</p>
+
+  <h2>BufferTarget values</h2>
+  <table>
+    <tr><th>Value</th><th>Use</th></tr>
+    <tr><td><code>BufferTarget::Array</code></td><td>Vertex buffer (VBO)</td></tr>
+    <tr><td><code>BufferTarget::ElementArray</code></td><td>Index buffer (IBO/EBO)</td></tr>
+    <tr><td><code>BufferTarget::Uniform</code></td><td>Uniform buffer object (UBO)</td></tr>
+    <tr><td><code>BufferTarget::ShaderStorage</code></td><td>Shader Storage Buffer (SSBO)</td></tr>
+    <tr><td><code>BufferTarget::TransformFeedback</code></td><td>Transform feedback output</td></tr>
+    <tr><td><code>BufferTarget::CopyRead</code></td><td>Buffer copy source</td></tr>
+    <tr><td><code>BufferTarget::CopyWrite</code></td><td>Buffer copy destination</td></tr>
+    <tr><td><code>BufferTarget::PixelPack</code></td><td>Pixel pack (GPU→CPU)</td></tr>
+    <tr><td><code>BufferTarget::PixelUnpack</code></td><td>Pixel unpack (CPU→GPU)</td></tr>
+  </table>
+
+  <h2>BufferUsage hints</h2>
+  <table>
+    <tr><th>Value</th><th>Pattern</th></tr>
+    <tr><td><code>BufferUsage::StaticDraw</code></td><td>Uploaded once, drawn many times</td></tr>
+    <tr><td><code>BufferUsage::DynamicDraw</code></td><td>Updated frequently, drawn many times</td></tr>
+    <tr><td><code>BufferUsage::StreamDraw</code></td><td>Updated every frame, drawn once</td></tr>
+    <tr><td><code>BufferUsage::StaticRead</code></td><td>Written by GPU, read by CPU once</td></tr>
+    <tr><td><code>BufferUsage::DynamicRead</code></td><td>Written by GPU, read by CPU often</td></tr>
+  </table>
+
+  <h2>Creating a vertex buffer</h2>
+<pre><code><span class="kw">constexpr float</span> vertices[] = {
+    <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>,  <span class="nm">1.0f</span>, <span class="nm">0.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>,  <span class="nm">0.0f</span>, <span class="nm">1.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.0f</span>,  <span class="nm">0.5f</span>,  <span class="nm">0.0f</span>, <span class="nm">0.0f</span>, <span class="nm">1.0f</span>,
+};
+
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> vbo;
+vbo.<span class="fn">create</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>,
+              vertices, <span class="kw">sizeof</span>(vertices),
+              <span class="ty">easygl</span>::<span class="ty">BufferUsage</span>::<span class="nm">StaticDraw</span>);</code></pre>
+
+  <h2>Creating an index buffer</h2>
+<pre><code><span class="kw">constexpr unsigned int</span> indices[] = { <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">0</span> };
+
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> ibo;
+ibo.<span class="fn">create</span>();
+ibo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">ElementArray</span>);
+ibo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">ElementArray</span>,
+              indices, <span class="kw">sizeof</span>(indices),
+              <span class="ty">easygl</span>::<span class="ty">BufferUsage</span>::<span class="nm">StaticDraw</span>);</code></pre>
+
+  <h2>Uniform buffer object (UBO)</h2>
+<pre><code><span class="kw">struct</span> <span class="ty">Matrices</span> {
+    <span class="kw">float</span> model[<span class="nm">16</span>];
+    <span class="kw">float</span> view[<span class="nm">16</span>];
+    <span class="kw">float</span> projection[<span class="nm">16</span>];
+};
+
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> ubo;
+ubo.<span class="fn">create</span>();
+ubo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>);
+ubo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>,
+              <span class="kw">nullptr</span>, <span class="kw">sizeof</span>(<span class="ty">Matrices</span>),
+              <span class="ty">easygl</span>::<span class="ty">BufferUsage</span>::<span class="nm">DynamicDraw</span>);
+
+<span class="cm">// Bind to binding point 0</span>
+ubo.<span class="fn">bind_base</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>, <span class="nm">0</span>);
+
+<span class="cm">// Update per-frame</span>
+<span class="ty">Matrices</span> mats = <span class="fn">computeMatrices</span>();
+ubo.<span class="fn">set_sub_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>,
+                  &amp;mats, <span class="kw">sizeof</span>(<span class="ty">Matrices</span>), <span class="nm">0</span>);</code></pre>
+
+  <h2>Partial range binding</h2>
+<pre><code><span class="cm">// Bind bytes [256, 256+sizeof(LightData)) to binding point 1</span>
+ubo.<span class="fn">bind_range</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Uniform</span>, <span class="nm">1</span>, <span class="nm">256</span>, <span class="kw">sizeof</span>(<span class="ty">LightData</span>));</code></pre>
+
+  <h2>Buffer mapping</h2>
+<pre><code><span class="kw">using</span> <span class="ty">Mask</span> = <span class="ty">easygl</span>::<span class="ty">MapBufferAccessMask</span>;
+<span class="kw">void</span>* ptr = vbo.<span class="fn">map_range</span>(
+    <span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>,
+    <span class="nm">0</span>,         <span class="cm">// offset</span>
+    bufferSize,  <span class="cm">// length</span>
+    <span class="ty">Mask</span>::<span class="nm">Write</span> | <span class="ty">Mask</span>::<span class="nm">InvalidateRange</span>);
+
+std::<span class="fn">memcpy</span>(ptr, newData, bufferSize);
+
+vbo.<span class="fn">flush_mapped_range</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, <span class="nm">0</span>, bufferSize);
+vbo.<span class="fn">unmap</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);</code></pre>
+
+  <h2>Copying between buffers</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">copy_sub_data</span>(
+    <span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">CopyRead</span>,
+    <span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">CopyWrite</span>,
+    <span class="nm">0</span>,       <span class="cm">// source offset</span>
+    <span class="nm">0</span>,       <span class="cm">// dest offset</span>
+    copySize);</code></pre>
+
+  <h2>Factory helpers</h2>
+  <p>Static template methods that create, bind, and upload in one call:</p>
+<pre><code><span class="cm">// Create vertex buffer from a span:</span>
+std::vector&lt;<span class="kw">float</span>&gt; verts = { <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>, <span class="nm">0.5f</span> };
+<span class="kw">auto</span> vbo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_vertex_buffer</span>(std::span&lt;<span class="kw">const float</span>&gt;(verts));
+
+<span class="cm">// Create index buffer from a span:</span>
+std::vector&lt;<span class="kw">unsigned int</span>&gt; idx = { <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span> };
+<span class="kw">auto</span> ibo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_index_buffer</span>(std::span&lt;<span class="kw">const unsigned int</span>&gt;(idx));
+
+<span class="cm">// Create empty UBO of given size:</span>
+<span class="kw">auto</span> ubo = <span class="ty">easygl</span>::<span class="ty">Buffer</span>::<span class="fn">create_uniform_buffer</span>(<span class="kw">sizeof</span>(<span class="ty">Matrices</span>));</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate a new OpenGL buffer handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free the GL handle. Noexcept.</td></tr>
+    <tr><td><code>bind(target)</code></td><td>Bind this buffer to <code>target</code>.</td></tr>
+    <tr><td><code>bind_base(target, index)</code></td><td>Bind to an indexed binding point (UBO, SSBO).</td></tr>
+    <tr><td><code>bind_range(target, index, offset, size)</code></td><td>Bind a byte range to an indexed point.</td></tr>
+    <tr><td><code>set_data(data, size)</code></td><td>Upload data to the already-bound target.</td></tr>
+    <tr><td><code>set_data(target, data, size)</code></td><td>Bind to target then upload.</td></tr>
+    <tr><td><code>set_data(target, data, size, usage)</code></td><td>Upload with explicit usage hint.</td></tr>
+    <tr><td><code>set_sub_data(data, size, offset)</code></td><td>Update a sub-range of existing data.</td></tr>
+    <tr><td><code>map_range(target, offset, length, access)</code></td><td>Map buffer range into CPU address space.</td></tr>
+    <tr><td><code>flush_mapped_range(target, offset, length)</code></td><td>Flush a mapped write range.</td></tr>
+    <tr><td><code>unmap(target)</code></td><td>Unmap the buffer. Returns false on data corruption.</td></tr>
+    <tr><td><code>copy_sub_data(...) [static]</code></td><td>GPU-side buffer copy.</td></tr>
+    <tr><td><code>create_vertex_buffer(span, usage) [static]</code></td><td>Create and upload a vertex buffer in one call.</td></tr>
+    <tr><td><code>create_index_buffer(span, usage) [static]</code></td><td>Create and upload an index buffer in one call.</td></tr>
+    <tr><td><code>create_uniform_buffer(size, usage) [static]</code></td><td>Create an empty UBO of the given byte size.</td></tr>
+    <tr><td><code>is_valid_gl_object()</code></td><td>True if the GL handle is currently valid.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if handle is allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL handle integer.</td></tr>
+    <tr><td><code>is_valid_for_current_generation()</code></td><td>False if context was lost and recreated.</td></tr>
+    <tr><td><code>creation_generation()</code></td><td>Generation counter at time of create().</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Clear handle without a GL call (context-loss recovery).</td></tr>
+  </table>
+</main>
+</body>
+</html>

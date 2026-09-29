@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextInfo — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html" class="active">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › ContextInfo</p>
+  <h1>ContextInfo</h1>
+  <p>A plain data struct returned by <code>Capabilities::context_info()</code>. Contains the GL vendor, renderer, version strings, and the extension list.</p>
+
+<pre><code><span class="kw">struct</span> <span class="ty">ContextInfo</span> {
+    <span class="ty">ApiKind</span>                   api      = <span class="ty">ApiKind</span>::<span class="nm">Unknown</span>;
+    <span class="kw">int</span>                       major    = <span class="nm">0</span>;
+    <span class="kw">int</span>                       minor    = <span class="nm">0</span>;
+    std::<span class="ty">string</span>               vendor;
+    std::<span class="ty">string</span>               renderer;
+    std::<span class="ty">string</span>               version_string;
+    std::<span class="ty">string</span>               shading_language_version;
+    std::vector&lt;std::<span class="ty">string</span>&gt; extensions;
+
+    <span class="kw">bool</span> <span class="fn">is_opengl</span>()   <span class="kw">const</span>;
+    <span class="kw">bool</span> <span class="fn">is_opengles</span>() <span class="kw">const</span>;
+};</code></pre>
+
+  <h2>ApiKind</h2>
+  <table>
+    <tr><th>Value</th><th>Meaning</th></tr>
+    <tr><td><code>ApiKind::Unknown</code></td><td>Before initialization</td></tr>
+    <tr><td><code>ApiKind::OpenGL</code></td><td>Desktop OpenGL</td></tr>
+    <tr><td><code>ApiKind::OpenGLES</code></td><td>OpenGL ES (mobile/embedded)</td></tr>
+  </table>
+
+  <h2>Printing info</h2>
+<pre><code><span class="kw">const auto</span>&amp; info = device.<span class="fn">capabilities</span>().<span class="fn">context_info</span>();
+
+std::cout &lt;&lt; <span class="st">"API:      "</span> &lt;&lt; (info.<span class="fn">is_opengl</span>() ? <span class="st">"OpenGL"</span> : <span class="st">"OpenGL ES"</span>) &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"Version:  "</span> &lt;&lt; info.major &lt;&lt; <span class="st">'.'</span> &lt;&lt; info.minor &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"Vendor:   "</span> &lt;&lt; info.vendor &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"Renderer: "</span> &lt;&lt; info.renderer &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"GLSL:     "</span> &lt;&lt; info.shading_language_version &lt;&lt; <span class="st">'\n'</span>;
+
+std::cout &lt;&lt; <span class="st">"Extensions (" </span>&lt;&lt; info.extensions.size() &lt;&lt; <span class="st">"):\n"</span>;
+<span class="kw">for</span> (<span class="kw">const auto</span>&amp; ext : info.extensions)
+    std::cout &lt;&lt; <span class="st">"  "</span> &lt;&lt; ext &lt;&lt; <span class="st">'\n'</span>;</code></pre>
+</main>
+</body>
+</html>

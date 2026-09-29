@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ProgramPipeline — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html" class="active">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › ProgramPipeline</p>
+  <h1>ProgramPipeline</h1>
+  <p>Manages a separable program pipeline — a collection of independently compiled program stages. Requires OpenGL 4.1+ or <code>GL_ARB_separate_shader_objects</code>. Non-copyable, movable, RAII.</p>
+
+  <p>A separable pipeline lets you mix and match independently compiled vertex and fragment programs without having to link them together into a single <a href="program.html">Program</a>. Each stage is compiled as a standalone <code>Program</code> via <code>Program::create_separable()</code>.</p>
+
+  <h2>Creating separable programs</h2>
+<pre><code><span class="cm">// Create separable programs — each is a full Program compiled for one stage</span>
+<span class="kw">auto</span> vertProg = <span class="ty">easygl</span>::<span class="ty">Program</span>::<span class="fn">create_separable</span>(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Vertex</span>, vertSrc);
+<span class="kw">auto</span> fragProg = <span class="ty">easygl</span>::<span class="ty">Program</span>::<span class="fn">create_separable</span>(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Fragment</span>, fragSrc);
+
+<span class="cm">// Assemble the pipeline</span>
+<span class="ty">easygl</span>::<span class="ty">ProgramPipeline</span> pipeline;
+pipeline.<span class="fn">create</span>();
+pipeline.<span class="fn">use_stages</span>(<span class="ty">easygl</span>::<span class="ty">ShaderStageMask</span>::<span class="nm">Vertex</span>, vertProg);
+pipeline.<span class="fn">use_stages</span>(<span class="ty">easygl</span>::<span class="ty">ShaderStageMask</span>::<span class="nm">Fragment</span>, fragProg);
+pipeline.<span class="fn">validate</span>();
+
+<span class="cm">// At render time: bind the pipeline instead of calling program.use()</span>
+pipeline.<span class="fn">bind</span>();
+<span class="cm">// ... draw calls ...</span>
+<span class="ty">easygl</span>::<span class="ty">ProgramPipeline</span>::<span class="fn">unbind</span>();</code></pre>
+
+  <h2>Setting uniforms without binding</h2>
+  <p>With separable programs, use the <code>set_program_uniform*</code> family on the individual program objects. These methods bypass the need to call <code>use()</code>:</p>
+<pre><code><span class="kw">int</span> loc = vertProg.<span class="fn">uniform_location</span>(<span class="st">"uMVP"</span>);
+vertProg.<span class="fn">set_program_uniform_matrix4</span>(loc, mvpData);
+
+<span class="kw">int</span> colorLoc = fragProg.<span class="fn">uniform_location</span>(<span class="st">"uColor"</span>);
+fragProg.<span class="fn">set_program_uniform</span>(colorLoc, <span class="nm">1.0f</span>, <span class="nm">0.5f</span>, <span class="nm">0.2f</span>, <span class="nm">1.0f</span>);</code></pre>
+
+  <div class="tip">See <a href="program.html#separable-uniforms">Program — Separable program uniforms</a> for the full list of <code>set_program_uniform*</code> methods.</div>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL pipeline handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind()</code></td><td>Bind this pipeline as the active program pipeline.</td></tr>
+    <tr><td><code>unbind() [static]</code></td><td>Bind pipeline 0 (disable separable pipeline).</td></tr>
+    <tr><td><code>use_stages(stages, program)</code></td><td>Assign a separable program to one or more pipeline stages.</td></tr>
+    <tr><td><code>set_active_shader_program(program)</code></td><td>Set the active program for <code>glUniform*</code> calls on this pipeline.</td></tr>
+    <tr><td><code>validate()</code></td><td>Validate the pipeline for the current GL state.</td></tr>
+    <tr><td><code>info_log()</code></td><td>Validation log string.</td></tr>
+    <tr><td><code>is_valid_gl_object()</code></td><td>True if the GL handle is currently valid.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle is allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery: clear handle without a GL call.</td></tr>
+  </table>
+</main>
+</body>
+</html>

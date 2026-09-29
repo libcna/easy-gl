@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TransformFeedback — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html" class="active">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › TransformFeedback</p>
+  <h1>TransformFeedback</h1>
+  <p>Captures vertex shader (or geometry shader) outputs into GPU buffers, enabling GPU-side particle simulation, geometry processing and other non-rendering compute tasks without compute shaders. Requires OpenGL 3.0+.</p>
+
+  <h2>Setup: specify varyings</h2>
+  <p>Tell OpenGL which vertex shader outputs to capture, <em>before</em> linking the program:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog;
+prog.<span class="fn">create</span>();
+prog.<span class="fn">attach_owned</span>(vert);
+
+<span class="kw">const char</span>* varyings[] = { <span class="st">"vPosition"</span>, <span class="st">"vVelocity"</span> };
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">set_varyings</span>(
+    prog,
+    {varyings, <span class="nm">2</span>},
+    <span class="ty">easygl</span>::<span class="ty">TransformFeedbackBufferMode</span>::<span class="nm">SeparateAttribs</span>);
+
+prog.<span class="fn">link</span>();</code></pre>
+
+  <h2>Interleaved vs separate attribs</h2>
+  <table>
+    <tr><th>Mode</th><th>Buffers needed</th><th>Use when</th></tr>
+    <tr><td><code>InterleavedAttribs</code></td><td>1 buffer, all outputs packed</td><td>Outputs go to one struct-of-arrays</td></tr>
+    <tr><td><code>SeparateAttribs</code></td><td>One buffer per varying</td><td>Outputs are independently used</td></tr>
+  </table>
+
+  <h2>Particle simulation ping-pong</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Buffer</span> posA, posB, velA, velB;
+<span class="cm">// ... create and fill A buffers ...</span>
+
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span> tf;
+tf.<span class="fn">create</span>();
+tf.<span class="fn">bind</span>();
+
+<span class="cm">// Bind output buffers</span>
+posB.<span class="fn">bind_base</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">TransformFeedback</span>, <span class="nm">0</span>);
+velB.<span class="fn">bind_base</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">TransformFeedback</span>, <span class="nm">1</span>);
+
+prog.<span class="fn">use</span>();
+vao.<span class="fn">bind</span>();
+
+device.<span class="fn">set_rasterizer_discard_enabled</span>(<span class="kw">true</span>); <span class="cm">// no fragment stage needed</span>
+
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">begin</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Points</span>);
+device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Points</span>, <span class="nm">0</span>, particleCount);
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">end</span>();
+
+device.<span class="fn">set_rasterizer_discard_enabled</span>(<span class="kw">false</span>);
+
+<span class="cm">// Swap A↔B for the next frame</span>
+std::<span class="fn">swap</span>(posA, posB);
+std::<span class="fn">swap</span>(velA, velB);</code></pre>
+
+  <h2>Pause &amp; resume</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">begin</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>);
+device.<span class="fn">draw_arrays</span>(...);
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">pause</span>();
+
+<span class="cm">// Intermediate draw that does NOT go into the feedback buffer</span>
+device.<span class="fn">draw_arrays</span>(...);
+
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">resume</span>();
+device.<span class="fn">draw_arrays</span>(...);
+<span class="ty">easygl</span>::<span class="ty">TransformFeedback</span>::<span class="fn">end</span>();</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL transform feedback handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind()</code></td><td>Bind this transform feedback object.</td></tr>
+    <tr><td><code>unbind() [static]</code></td><td>Bind feedback object 0.</td></tr>
+    <tr><td><code>begin(primitive) [static]</code></td><td>Begin transform feedback recording.</td></tr>
+    <tr><td><code>end() [static]</code></td><td>End recording.</td></tr>
+    <tr><td><code>pause() [static]</code></td><td>Temporarily suspend recording.</td></tr>
+    <tr><td><code>resume() [static]</code></td><td>Resume recording after pause.</td></tr>
+    <tr><td><code>set_varyings(prog, varyings, mode) [static]</code></td><td>Specify captured varyings before link (<code>prog</code> is <code>const Program&amp;</code>).</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

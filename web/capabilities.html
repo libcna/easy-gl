@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Capabilities — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html" class="active">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Capabilities</p>
+  <h1>Capabilities</h1>
+  <p>Populated automatically by <code>Device::initialize()</code>. Provides read-only access to the GL context information, supported features and implementation limits.</p>
+
+  <h2>Accessing capabilities</h2>
+<pre><code><span class="kw">const auto</span>&amp; caps = device.<span class="fn">capabilities</span>();
+<span class="kw">const auto</span>&amp; info = caps.<span class="fn">context_info</span>();
+
+std::cout &lt;&lt; <span class="st">"Vendor:   "</span>   &lt;&lt; info.vendor             &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"Renderer: "</span>   &lt;&lt; info.renderer           &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"Version:  "</span>   &lt;&lt; info.version_string     &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"GLSL:     "</span>   &lt;&lt; info.shading_language_version &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"API kind: "</span>   &lt;&lt; (caps.<span class="fn">is_opengl</span>() ? <span class="st">"OpenGL"</span> : <span class="st">"OpenGL ES"</span>) &lt;&lt; <span class="st">'\n'</span>;
+std::cout &lt;&lt; <span class="st">"GL &gt;= 4.1: "</span> &lt;&lt; caps.<span class="fn">is_at_least</span>(<span class="nm">4</span>, <span class="nm">1</span>) &lt;&lt; <span class="st">'\n'</span>;</code></pre>
+
+  <h2>Feature checks</h2>
+<pre><code><span class="kw">if</span> (caps.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">ComputeShader</span>)) { ... }
+<span class="kw">if</span> (caps.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">AnisotropicFiltering</span>)) { ... }</code></pre>
+
+  <h2>Extension check</h2>
+<pre><code><span class="kw">if</span> (caps.<span class="fn">supports_extension</span>(<span class="st">"GL_ARB_bindless_texture"</span>)) {
+    <span class="cm">// use bindless textures</span>
+}</code></pre>
+
+  <h2>Implementation limits</h2>
+<pre><code><span class="kw">int</span> maxTexUnits  = caps.<span class="fn">get_limit</span>(<span class="st">"MAX_COMBINED_TEXTURE_IMAGE_UNITS"</span>);
+<span class="kw">int</span> maxUboSize   = caps.<span class="fn">get_limit</span>(<span class="st">"MAX_UNIFORM_BLOCK_SIZE"</span>);
+<span class="kw">int</span> maxComputeX  = caps.<span class="fn">get_limit</span>(<span class="st">"MAX_COMPUTE_WORK_GROUP_SIZE_X"</span>);</code></pre>
+
+  <h2>Feature enum reference</h2>
+  <table>
+    <tr><th>Feature</th><th>Minimum GL</th><th>Description</th></tr>
+    <tr><td><code>VertexArrayObject</code></td><td>3.0</td><td>VAO support</td></tr>
+    <tr><td><code>Shader</code></td><td>2.0</td><td>Programmable shaders</td></tr>
+    <tr><td><code>Program</code></td><td>2.0</td><td>Linked shader programs</td></tr>
+    <tr><td><code>Buffer</code></td><td>1.5</td><td>VBOs</td></tr>
+    <tr><td><code>BasicRendering</code></td><td>1.0</td><td>Draw calls, clear</td></tr>
+    <tr><td><code>DebugOutput</code></td><td>4.3 / KHR_debug</td><td>GL debug callback</td></tr>
+    <tr><td><code>ComputeShader</code></td><td>4.3</td><td>Compute shaders</td></tr>
+    <tr><td><code>GeometryShader</code></td><td>3.2</td><td>Geometry shaders</td></tr>
+    <tr><td><code>TessellationShader</code></td><td>4.0</td><td>Tessellation stages</td></tr>
+    <tr><td><code>Texture3D</code></td><td>1.2</td><td>3D texture targets</td></tr>
+    <tr><td><code>TextureFloat</code></td><td>3.0 / ARB_texture_float</td><td>Float internal formats</td></tr>
+    <tr><td><code>TextureRG</code></td><td>3.0 / ARB_texture_rg</td><td>Red/RG-only formats</td></tr>
+    <tr><td><code>SamplerObject</code></td><td>3.3</td><td>Sampler objects</td></tr>
+    <tr><td><code>Instancing</code></td><td>3.1</td><td>Instanced draw calls</td></tr>
+    <tr><td><code>UniformBufferObject</code></td><td>3.1</td><td>UBOs</td></tr>
+    <tr><td><code>FramebufferObject</code></td><td>3.0</td><td>FBOs</td></tr>
+    <tr><td><code>Multisampling</code></td><td>3.2</td><td>MSAA</td></tr>
+    <tr><td><code>DrawBuffers</code></td><td>2.0</td><td>MRT</td></tr>
+    <tr><td><code>MapBuffer</code></td><td>1.5</td><td>Buffer mapping</td></tr>
+    <tr><td><code>DirectStateAccess</code></td><td>4.5</td><td>DSA calls</td></tr>
+    <tr><td><code>TextureCompression</code></td><td>1.3</td><td>Compressed texture formats</td></tr>
+    <tr><td><code>AnisotropicFiltering</code></td><td>EXT_texture_filter_anisotropic</td><td>Anisotropic filtering</td></tr>
+  </table>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>context_info()</code></td><td>Returns ContextInfo struct.</td></tr>
+    <tr><td><code>supports(Feature)</code></td><td>True if the feature is available.</td></tr>
+    <tr><td><code>supports_extension(name)</code></td><td>True if the named extension is present.</td></tr>
+    <tr><td><code>get_limit(name)</code></td><td>Return a named implementation limit as int.</td></tr>
+    <tr><td><code>is_opengl()</code></td><td>True if desktop OpenGL context.</td></tr>
+    <tr><td><code>is_opengles()</code></td><td>True if OpenGL ES context.</td></tr>
+    <tr><td><code>is_at_least(major, minor)</code></td><td>True if context version ≥ major.minor.</td></tr>
+  </table>
+</main>
+</body>
+</html>

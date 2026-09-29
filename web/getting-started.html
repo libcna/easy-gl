@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Getting Started — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html" class="active">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Getting Started</p>
+  <h1>Getting Started</h1>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li>C++20 compiler (GCC 10+, Clang 12+, MSVC 2019 16.8+)</li>
+    <li>CMake 3.23+</li>
+    <li>meta-gl library (easy-gl depends on it)</li>
+    <li>An OpenGL context provider (SDL3, GLFW, SFML, etc.)</li>
+  </ul>
+
+  <h2>CMake integration</h2>
+  <p>Add easy-gl and meta-gl as subdirectories or use <code>FetchContent</code>:</p>
+<pre><code><span class="cm"># CMakeLists.txt</span>
+<span class="fn">cmake_minimum_required</span>(VERSION 3.23)
+<span class="fn">project</span>(MyApp)
+
+<span class="fn">include</span>(FetchContent)
+<span class="fn">FetchContent_Declare</span>(easy-gl
+    GIT_REPOSITORY https://github.com/openeggbert/easy-gl.git
+    GIT_TAG        main)
+<span class="fn">FetchContent_MakeAvailable</span>(easy-gl)
+
+<span class="fn">add_executable</span>(MyApp main.cpp)
+<span class="fn">target_link_libraries</span>(MyApp PRIVATE easy-gl)</code></pre>
+
+  <p>easy-gl's CMake target is <code>easy-gl</code>. It automatically pulls in meta-gl and sets the include paths.</p>
+
+  <h2>Including the library</h2>
+  <p>A single umbrella header includes everything:</p>
+<pre><code><span class="kw">#include</span> <span class="st">&lt;easygl/easygl.hpp&gt;</span></code></pre>
+  <p>Or include individual class headers for faster compilation:</p>
+<pre><code><span class="kw">#include</span> <span class="st">&lt;easygl/Device.hpp&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;easygl/Buffer.hpp&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;easygl/Program.hpp&gt;</span>
+<span class="kw">#include</span> <span class="st">&lt;easygl/VertexArray.hpp&gt;</span></code></pre>
+
+  <h2>Step 1 — Create an OpenGL context</h2>
+  <p>easy-gl does not create a window or context itself. Use SDL3, GLFW, or any other library for that. The key requirement is that you have an active OpenGL context before calling <code>device.initialize()</code>.</p>
+
+<pre><code><span class="cm">// SDL3 example — create window + context</span>
+SDL_Init(SDL_INIT_VIDEO);
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, <span class="nm">3</span>);
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, <span class="nm">3</span>);
+SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+
+<span class="ty">SDL_Window</span>* window = SDL_CreateWindow(<span class="st">"My App"</span>, <span class="nm">800</span>, <span class="nm">600</span>, SDL_WINDOW_OPENGL);
+<span class="ty">SDL_GLContext</span> glCtx = SDL_GL_CreateContext(window);
+SDL_GL_MakeCurrent(window, glCtx);</code></pre>
+
+  <h2>Step 2 — Initialize the Device</h2>
+  <p><a href="device.html">Device</a> is the central object. Initialise it by passing a function pointer loader that resolves OpenGL symbols at runtime:</p>
+
+<pre><code><span class="ty">easygl</span>::<span class="ty">Device</span> device;
+<span class="kw">try</span> {
+    device.<span class="fn">initialize</span>(
+        reinterpret_cast&lt;<span class="ty">easygl</span>::<span class="ty">GLGetProcAddressFn</span>&gt;(SDL_GL_GetProcAddress));
+} <span class="kw">catch</span> (<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">Exception</span>&amp; e) {
+    std::cerr &lt;&lt; <span class="st">"easy-gl init failed: "</span> &lt;&lt; e.what() &lt;&lt; <span class="st">'\n'</span>;
+    <span class="kw">return</span> <span class="nm">1</span>;
+}</code></pre>
+
+  <div class="tip">After initialization you can inspect <code>device.capabilities()</code> to query the vendor, renderer, version and supported features.</div>
+
+  <h2>Step 3 — Create GPU resources</h2>
+  <p>All resource classes follow the same pattern: construct, then call <code>create()</code> to allocate the GPU handle.</p>
+
+<pre><code><span class="cm">// A buffer</span>
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> vbo;
+vbo.<span class="fn">create</span>();
+
+<span class="cm">// A vertex array object</span>
+<span class="ty">easygl</span>::<span class="ty">VertexArray</span> vao;
+vao.<span class="fn">create</span>();
+
+<span class="cm">// A compiled+linked program (one-shot constructor)</span>
+<span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertexSrc, fragmentSrc);</code></pre>
+
+  <div class="note">Resources must be created while a valid OpenGL context is current. Never construct them before calling <code>device.initialize()</code>.</div>
+
+  <h2>Step 4 — Upload data</h2>
+<pre><code><span class="kw">constexpr float</span> vertices[] = {
+    <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.0f</span>,  <span class="nm">0.5f</span>, <span class="nm">0.0f</span>
+};
+
+vao.<span class="fn">bind</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, vertices, <span class="kw">sizeof</span>(vertices));
+
+vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{
+    .index            = <span class="nm">0</span>,
+    .components       = <span class="nm">3</span>,
+    .type             = <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>,
+    .normalized       = <span class="kw">false</span>,
+    .stride_in_bytes  = <span class="nm">3</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>),
+    .offset_in_bytes  = <span class="nm">0</span>,
+    .enabled          = <span class="kw">true</span>
+});</code></pre>
+
+  <h2>Step 5 — Render loop</h2>
+<pre><code><span class="kw">while</span> (running)
+{
+    device.<span class="fn">set_clear_color</span>(<span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">1.0f</span>);
+    device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span>);
+
+    prog.<span class="fn">use</span>();
+    vao.<span class="fn">bind</span>();
+    device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">3</span>);
+
+    SDL_GL_SwapWindow(window);
+}</code></pre>
+
+  <h2>Step 6 — Cleanup</h2>
+  <p>Resources are RAII. They are destroyed automatically when they go out of scope. The only rule: ensure <strong>all easy-gl objects are destroyed before the OpenGL context is destroyed</strong>. The simplest way is a scoped block:</p>
+
+<pre><code><span class="cm">// all easy-gl objects inside this scope</span>
+{
+    <span class="ty">easygl</span>::<span class="ty">Device</span> device;
+    device.<span class="fn">initialize</span>(...);
+
+    <span class="ty">easygl</span>::<span class="ty">Buffer</span> vbo;
+    vbo.<span class="fn">create</span>();
+
+    <span class="cm">// ... render loop ...</span>
+
+} <span class="cm">// vbo and device destroyed here, while context is still alive</span>
+
+SDL_GL_DestroyContext(glCtx); <span class="cm">// safe to destroy context now</span></code></pre>
+
+  <div class="warn">If you destroy the GL context before easy-gl objects, the destructors will call OpenGL with an invalid context. Use scoped blocks or explicit <code>destroy()</code> calls to avoid this.</div>
+
+  <h2>Next steps</h2>
+  <ul>
+    <li><a href="example-hello-triangle.html">Full Hello Triangle example</a></li>
+    <li><a href="device.html">Device reference</a></li>
+    <li><a href="ownership.html">Understanding RAII and move semantics</a></li>
+    <li><a href="error-handling.html">Error handling in depth</a></li>
+  </ul>
+</main>
+</body>
+</html>

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RecoverableResource — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html" class="active">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › RecoverableResource</p>
+  <h1>RecoverableResource</h1>
+  <p>Abstract base class for OpenGL resources that can survive an OpenGL context loss and restoration cycle. Implement this interface to integrate your resource with <a href="resource-registry.html">ResourceRegistry</a>.</p>
+
+  <h2>The context-loss problem</h2>
+  <p>On mobile platforms and some desktop scenarios, the operating system can destroy the OpenGL context at any time (e.g. app backgrounded on Android). All GPU handles immediately become invalid — any attempt to use them causes undefined behaviour.</p>
+  <p><code>RecoverableResource</code> solves this by separating CPU-side data (pixels, shader source, vertex data) from the GPU handle. On context loss, the GPU handle is discarded. On context restoration, the resource recreates the GPU object from its stored CPU data.</p>
+
+  <h2>Implementing the interface</h2>
+  <p>Store all CPU-side data needed to recreate the GPU resource, then implement the two pure virtual methods:</p>
+<pre><code><span class="kw">class</span> <span class="ty">MyTexture</span> : <span class="kw">public</span> <span class="ty">easygl</span>::<span class="ty">RecoverableResource</span>
+{
+<span class="kw">public</span>:
+    <span class="kw">void</span> <span class="fn">load</span>(<span class="kw">int</span> w, <span class="kw">int</span> h, <span class="kw">const void</span>* pixels)
+    {
+        width_ = w;  height_ = h;
+        pixels_.<span class="fn">assign</span>(
+            <span class="kw">static_cast</span>&lt;<span class="kw">const</span> uint8_t*&gt;(pixels),
+            <span class="kw">static_cast</span>&lt;<span class="kw">const</span> uint8_t*&gt;(pixels) + w * h * <span class="nm">4</span>);
+        <span class="fn">recreate_gl_resource</span>();
+    }
+
+    <span class="kw">void</span> <span class="fn">release_gl_handle_only</span>() <span class="kw">override</span>
+    {
+        tex_.<span class="fn">reset_handle_no_gl</span>(); <span class="cm">// discard stale handle — no GL call</span>
+    }
+
+    <span class="kw">void</span> <span class="fn">recreate_gl_resource</span>() <span class="kw">override</span>
+    {
+        tex_ = <span class="ty">easygl</span>::<span class="ty">Texture</span>::<span class="fn">create_2d_rgba8</span>(width_, height_, pixels_.<span class="fn">data</span>());
+    }
+
+<span class="kw">private</span>:
+    <span class="ty">easygl</span>::<span class="ty">Texture</span> tex_;
+    <span class="kw">int</span> width_ = <span class="nm">0</span>, height_ = <span class="nm">0</span>;
+    std::vector&lt;uint8_t&gt; pixels_;
+};</code></pre>
+
+  <div class="tip">Register instances with <a href="resource-registry.html">ResourceRegistry</a> so they are notified automatically when the context is lost and restored.</div>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>release_gl_handle_only()</code> [pure virtual]</td><td>Drop the GPU handle without calling any <code>gl*</code> functions. Called after context loss. Must keep CPU-side data intact.</td></tr>
+    <tr><td><code>recreate_gl_resource()</code> [pure virtual]</td><td>Recreate the GPU resource from stored CPU-side data. Called after context is restored.</td></tr>
+  </table>
+</main>
+</body>
+</html>

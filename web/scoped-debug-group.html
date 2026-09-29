@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScopedDebugGroup — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html" class="active">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › ScopedDebugGroup</p>
+  <h1>ScopedDebugGroup</h1>
+  <p>RAII wrapper around <code>Device::push_debug_group()</code> / <code>pop_debug_group()</code>. Marks a named section in the GPU command stream, visible in tools like RenderDoc, NVIDIA Nsight, and Xcode GPU Frame Debugger.</p>
+
+  <p>Requires <code>GL_KHR_debug</code> (core in OpenGL 4.3+ and OpenGL ES 3.2+) and debug output enabled on the device. The constructor calls <code>push_debug_group()</code>; the destructor calls <code>pop_debug_group()</code>. Non-copyable, non-movable.</p>
+
+  <h2>Usage in a render loop</h2>
+<pre><code><span class="kw">void</span> <span class="fn">renderFrame</span>(<span class="ty">easygl</span>::<span class="ty">Device</span>&amp; device)
+{
+    {
+        <span class="ty">easygl</span>::<span class="ty">ScopedDebugGroup</span> shadowGroup(device, <span class="st">"Shadow pass"</span>);
+        <span class="cm">// All GPU commands appear nested under "Shadow pass" in the profiler</span>
+        device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, shadowWidth, shadowHeight);
+        device.<span class="fn">draw_elements</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, indexCount,
+                              <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedInt</span>, <span class="kw">nullptr</span>);
+    } <span class="cm">// pop_debug_group() called here</span>
+
+    {
+        <span class="ty">easygl</span>::<span class="ty">ScopedDebugGroup</span> mainGroup(device, <span class="st">"Main pass"</span>);
+        device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, screenWidth, screenHeight);
+        device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, vertexCount);
+    } <span class="cm">// pop_debug_group() called here</span>
+}</code></pre>
+
+  <h2>Optional numeric ID</h2>
+  <p>A numeric identifier can be passed as the third argument. It is displayed alongside the label in some tools:</p>
+<pre><code><span class="ty">easygl</span>::<span class="ty">ScopedDebugGroup</span> group(device, <span class="st">"Post-process pass"</span>, <span class="nm">42u</span>);</code></pre>
+
+  <h2>Constructor</h2>
+  <table>
+    <tr><th>Parameter</th><th>Description</th></tr>
+    <tr><td><code>device</code></td><td>The <code>Device</code> to push/pop the debug group on.</td></tr>
+    <tr><td><code>label</code></td><td>Human-readable name shown in profiling tools.</td></tr>
+    <tr><td><code>id</code> (optional)</td><td>Numeric identifier (default <code>0</code>).</td></tr>
+  </table>
+</main>
+</body>
+</html>

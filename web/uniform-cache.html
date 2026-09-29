@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UniformCache — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html" class="active">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › UniformCache</p>
+  <h1>UniformCache</h1>
+  <p>A lightweight cache around <code>Program::uniform_location()</code>. Avoids repeated string lookups by storing results in an <code>unordered_map</code>. Constructed from a <code>const Program&amp;</code>; the program must remain alive for the lifetime of the cache.</p>
+
+  <p>Without caching, every call to <code>uniform_location("name")</code> issues a driver call. <code>UniformCache</code> performs the lookup once and returns the cached integer on subsequent accesses via <code>operator[]</code>.</p>
+
+  <h2>Basic usage</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertSrc, fragSrc);
+<span class="ty">easygl</span>::<span class="ty">UniformCache</span> uniforms(prog);
+
+<span class="cm">// First call queries the driver and caches; subsequent calls return the cached value:</span>
+prog.<span class="fn">set_uniform</span>(uniforms[<span class="st">"uColor"</span>], <span class="nm">1.0f</span>, <span class="nm">0.5f</span>, <span class="nm">0.2f</span>, <span class="nm">1.0f</span>);
+prog.<span class="fn">set_uniform</span>(uniforms[<span class="st">"uMVP"</span>],   <span class="cm">/* ... */</span>);
+
+<span class="cm">// Locations not found in the shader return -1 (same as Program::uniform_location)</span></code></pre>
+
+  <h2>Invalidating after relink</h2>
+  <p>When a program is recompiled, uniform locations may change. Call <code>invalidate()</code> to clear the cache so the next access re-queries the driver:</p>
+<pre><code>prog.<span class="fn">compile_from_sources</span>(newVertSrc, newFragSrc);
+uniforms.<span class="fn">invalidate</span>(); <span class="cm">// clear all cached locations</span>
+
+<span class="cm">// Next access re-queries the newly linked program:</span>
+prog.<span class="fn">set_uniform</span>(uniforms[<span class="st">"uColor"</span>], <span class="nm">1.0f</span>, <span class="nm">1.0f</span>, <span class="nm">1.0f</span>, <span class="nm">1.0f</span>);</code></pre>
+
+  <div class="note">The cache holds a pointer to the program. Do not destroy the program while the <code>UniformCache</code> is still in use.</div>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>UniformCache(const Program&amp;)</code></td><td>Construct the cache bound to a program.</td></tr>
+    <tr><td><code>operator[](name)</code></td><td>Return the cached location for <code>name</code>, querying the program on first access.</td></tr>
+    <tr><td><code>invalidate()</code></td><td>Clear all cached locations so next access re-queries the driver.</td></tr>
+  </table>
+</main>
+</body>
+</html>

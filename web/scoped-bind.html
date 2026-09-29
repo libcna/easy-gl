@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ScopedBind — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html" class="active">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › ScopedBind</p>
+  <h1>ScopedBind</h1>
+  <p>A RAII helper that calls a bind function on construction and an unbind function on destruction. Useful for ensuring a resource is unbound when leaving a scope, even on exceptions.</p>
+
+  <p><code>ScopedBind</code> is non-copyable and non-movable. It is templated on the bind and unbind callable types so there is no virtual dispatch overhead.</p>
+
+  <h2>Usage with a Framebuffer</h2>
+<pre><code><span class="cm">// Bind the FBO for the duration of this block, then unbind automatically:</span>
+{
+    <span class="ty">easygl</span>::<span class="ty">ScopedBind</span> fboBind(
+        [&amp;]{ fbo.<span class="fn">bind</span>(); },
+        []{ <span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">unbind</span>(); }
+    );
+
+    <span class="cm">// Render to fbo here ...</span>
+    device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">3</span>);
+
+} <span class="cm">// FBO is unbound here, even if an exception was thrown above</span></code></pre>
+
+  <h2>Usage with a VAO</h2>
+<pre><code>{
+    <span class="ty">easygl</span>::<span class="ty">ScopedBind</span> vaoBind(
+        [&amp;]{ vao.<span class="fn">bind</span>(); },
+        [&amp;]{ vao.<span class="fn">unbind</span>(); }
+    );
+
+    <span class="cm">// Modify vertex attribute state ...</span>
+    vao.<span class="fn">set_attribute_pointer</span>(<span class="nm">0</span>, <span class="nm">3</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, <span class="nm">0</span>, <span class="kw">nullptr</span>);
+    vao.<span class="fn">enable_attribute</span>(<span class="nm">0</span>);
+}</code></pre>
+
+  <div class="note"><code>ScopedBind</code> is non-copyable and non-movable. Construct it at the top of a scope and let it run to the closing brace.</div>
+
+  <h2>Constructor</h2>
+  <table>
+    <tr><th>Parameter</th><th>Description</th></tr>
+    <tr><td><code>bind_fn</code></td><td>Callable invoked immediately on construction.</td></tr>
+    <tr><td><code>unbind_fn</code></td><td>Callable stored and invoked in the destructor.</td></tr>
+  </table>
+</main>
+</body>
+</html>

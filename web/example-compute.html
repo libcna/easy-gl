@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compute Shader — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html" class="active">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Compute Shader</p>
+  <h1>Compute Shader</h1>
+  <p>Uses a compute shader to procedurally fill a texture, then renders it. Demonstrates <code>dispatch_compute</code>, image load/store, and <code>memory_barrier</code>.</p>
+
+  <h2>Prerequisite check</h2>
+<pre><code>device.<span class="fn">require</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">ComputeShader</span>); <span class="cm">// throws if GL &lt; 4.3</span></code></pre>
+
+  <h2>Compute shader source</h2>
+<pre><code><span class="kw">const char</span>* compSrc = <span class="st">R"(#version 430 core
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout (rgba8, binding = 0) uniform image2D uOutput;
+
+uniform float uTime;
+
+void main() {
+    ivec2 coord = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size  = imageSize(uOutput);
+    if (coord.x >= size.x || coord.y >= size.y) return;
+
+    vec2 uv = (vec2(coord) + 0.5) / vec2(size);
+    float r = 0.5 + 0.5 * sin(uv.x * 20.0 + uTime);
+    float g = 0.5 + 0.5 * cos(uv.y * 20.0 + uTime * 0.7);
+    float b = 0.5 + 0.5 * sin((uv.x + uv.y) * 15.0 - uTime * 1.3);
+    imageStore(uOutput, coord, vec4(r, g, b, 1.0));
+})"</span>;</code></pre>
+
+  <h2>Setup compute program</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Shader</span> compShader(<span class="ty">easygl</span>::<span class="ty">ShaderType</span>::<span class="nm">Compute</span>);
+compShader.<span class="fn">create</span>();
+compShader.<span class="fn">compile_from_source</span>(compSrc);
+
+<span class="ty">easygl</span>::<span class="ty">Program</span> compProg;
+compProg.<span class="fn">create</span>();
+compProg.<span class="fn">attach_owned</span>(compShader);
+compProg.<span class="fn">link</span>();
+
+<span class="kw">const int</span> timeLoc = compProg.<span class="fn">uniform_location</span>(<span class="st">"uTime"</span>);</code></pre>
+
+  <h2>Create the output texture</h2>
+<pre><code><span class="kw">constexpr int</span> TEX_W = <span class="nm">512</span>, TEX_H = <span class="nm">512</span>;
+
+<span class="ty">easygl</span>::<span class="ty">Texture</span> outputTex;
+outputTex.<span class="fn">create</span>();
+outputTex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+outputTex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, <span class="nm">1</span>,
+                            <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>, TEX_W, TEX_H);</code></pre>
+
+  <h2>Render loop — dispatch and display</h2>
+<pre><code><span class="kw">while</span> (running) {
+    <span class="kw">const float</span> time = <span class="kw">static_cast</span>&lt;<span class="kw">float</span>&gt;(SDL_GetTicks()) / <span class="nm">1000.0f</span>;
+
+    <span class="cm">// ---- Compute pass: fill texture ----</span>
+    compProg.<span class="fn">use</span>();
+    compProg.<span class="fn">set_uniform</span>(timeLoc, time);
+
+    outputTex.<span class="fn">bind_image</span>(
+        <span class="nm">0</span>,                                   <span class="cm">// image unit 0</span>
+        <span class="nm">0</span>,                                   <span class="cm">// mip level 0</span>
+        <span class="kw">false</span>,                               <span class="cm">// not layered</span>
+        <span class="nm">0</span>,                                   <span class="cm">// layer</span>
+        <span class="ty">easygl</span>::<span class="ty">ImageAccess</span>::<span class="nm">WriteOnly</span>,
+        <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>);
+
+    <span class="cm">// Dispatch: work groups of 8×8, covering 512×512 pixels</span>
+    device.<span class="fn">dispatch_compute</span>(TEX_W / <span class="nm">8</span>, TEX_H / <span class="nm">8</span>, <span class="nm">1</span>);
+
+    <span class="cm">// Barrier: ensure imageStore writes are visible to texture sampling below</span>
+    device.<span class="fn">memory_barrier</span>(<span class="ty">easygl</span>::<span class="ty">MemoryBarrierMask</span>::<span class="nm">TextureFetch</span>);
+
+    <span class="cm">// ---- Render pass: display texture on fullscreen quad ----</span>
+    <span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">unbind</span>();
+    device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, winW, winH);
+    device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span>);
+
+    displayProg.<span class="fn">use</span>();
+    outputTex.<span class="fn">active_bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureUnit</span>::<span class="nm">Texture0</span>,
+                            <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+    displayProg.<span class="fn">set_uniform</span>(displayProg.<span class="fn">uniform_location</span>(<span class="st">"uTex"</span>), <span class="nm">0</span>);
+    fsVao.<span class="fn">bind</span>();
+    device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">6</span>);
+
+    SDL_GL_SwapWindow(window);
+}</code></pre>
+
+  <h2>Key points</h2>
+  <ul>
+    <li>Compute shaders require GL 4.3. Always <code>require(Feature::ComputeShader)</code> before use.</li>
+    <li>The work group size (<code>local_size_x/y</code>) is defined in the shader. Choose multiples of the warp/wavefront size (typically 32 or 64) for best performance.</li>
+    <li>Number of groups = <code>ceil(dimension / local_size)</code>. The guard <code>if (coord >= size) return;</code> in the shader handles the case where the dimension is not a multiple of the group size.</li>
+    <li><code>memory_barrier(TextureFetch)</code> must be inserted between the image store in the compute shader and the texture sample in the fragment shader.</li>
+    <li><code>bind_image</code> is separate from <code>active_bind</code> — image units and texture units are distinct.</li>
+  </ul>
+</main>
+</body>
+</html>

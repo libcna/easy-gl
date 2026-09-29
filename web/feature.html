@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Feature — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html" class="active">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Feature</p>
+  <h1>Feature</h1>
+  <p>An <code>enum class</code> used with <code>Device::supports()</code>, <code>Device::require()</code>, and <code>Capabilities::supports()</code>. Defines named capabilities that may or may not be present depending on the OpenGL version or extensions available.</p>
+
+<pre><code><span class="kw">enum class</span> <span class="ty">Feature</span> {
+    VertexArrayObject,
+    Shader,
+    Program,
+    Buffer,
+    BasicRendering,
+    DebugOutput,
+    ComputeShader,
+    GeometryShader,
+    TessellationShader,
+    Texture3D,
+    TextureFloat,
+    TextureRG,
+    SamplerObject,
+    Instancing,
+    UniformBufferObject,
+    FramebufferObject,
+    Multisampling,
+    DrawBuffers,
+    MapBuffer,
+    DirectStateAccess,
+    ClipControl,
+    TextureCompression,
+    AnisotropicFiltering,
+    OpenGlOnlyImmediateMode,
+    OpenGlOnlyPolygonMode,
+    OpenGlOnlyLineWidthWide
+};</code></pre>
+
+  <h2>Using Feature for runtime branching</h2>
+<pre><code><span class="kw">if</span> (device.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">AnisotropicFiltering</span>)) {
+    tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                       <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MaxAnisotropy</span>, <span class="nm">16.0f</span>);
+}
+
+<span class="kw">if</span> (device.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">TessellationShader</span>)) {
+    device.<span class="fn">set_patch_vertices</span>(<span class="nm">3</span>);
+    <span class="cm">// submit tessellated draw ...</span>
+} <span class="kw">else</span> {
+    <span class="cm">// fallback to triangle mesh ...</span>
+}</code></pre>
+
+  <h2>Requiring a feature (throw on missing)</h2>
+<pre><code><span class="cm">// Abort early with a clear message if FBOs are not available</span>
+device.<span class="fn">require</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">FramebufferObject</span>);
+device.<span class="fn">require</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">UniformBufferObject</span>);</code></pre>
+
+  <div class="note"><code>OpenGlOnlyImmediateMode</code>, <code>OpenGlOnlyPolygonMode</code>, and <code>OpenGlOnlyLineWidthWide</code> are features that exist only on desktop OpenGL and are never available on OpenGL ES. Check before using <code>glBegin/glEnd</code>, <code>glPolygonMode</code>, or wide line widths.</div>
+</main>
+</body>
+</html>

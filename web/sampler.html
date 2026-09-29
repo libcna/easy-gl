@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sampler — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html" class="active">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Sampler</p>
+  <h1>Sampler</h1>
+  <p>A Sampler Object decouples texture sampling parameters (filtering, wrap mode, LOD bias) from the texture itself. Bind a Sampler to a texture unit to override the texture's own sampling parameters. Requires OpenGL 3.3+.</p>
+
+  <h2>Why use sampler objects?</h2>
+  <ul>
+    <li>Reuse the same sampling settings across multiple textures without duplicating parameters.</li>
+    <li>Swap filtering modes at draw time without touching the texture state.</li>
+    <li>Useful for atlases where different draw calls need different wrap modes on the same texture.</li>
+  </ul>
+
+  <h2>Factory helpers</h2>
+  <p>Pre-built samplers for common configurations:</p>
+<pre><code><span class="kw">auto</span> linearClamp  = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_linear_clamp</span>();   <span class="cm">// linear filter, clamp to edge</span>
+<span class="kw">auto</span> nearestClamp = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_nearest_clamp</span>();  <span class="cm">// nearest filter, clamp to edge</span>
+<span class="kw">auto</span> linearRepeat = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_linear_repeat</span>();  <span class="cm">// linear filter, repeat wrap</span>
+<span class="kw">auto</span> mipLinear    = <span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">create_mipmap_linear</span>();  <span class="cm">// trilinear mipmap, repeat wrap</span></code></pre>
+
+  <h2>Creating a trilinear sampler</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Sampler</span> trilinear;
+trilinear.<span class="fn">create</span>();
+trilinear.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">MinFilter</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMinFilter</span>::<span class="nm">LinearMipmapLinear</span>));
+trilinear.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">MagFilter</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMagFilter</span>::<span class="nm">Linear</span>));
+trilinear.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">WrapS</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">Repeat</span>));
+trilinear.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">WrapT</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">Repeat</span>));</code></pre>
+
+  <h2>Creating a shadow-comparison sampler</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Sampler</span> shadowSampler;
+shadowSampler.<span class="fn">create</span>();
+shadowSampler.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">CompareMode</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureCompareMode</span>::<span class="nm">CompareRefToTexture</span>));
+shadowSampler.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">CompareFunc</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">CompareFunc</span>::<span class="nm">Lequal</span>));
+shadowSampler.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">MinFilter</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMinFilter</span>::<span class="nm">Linear</span>));
+shadowSampler.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">WrapS</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">ClampToEdge</span>));
+shadowSampler.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">SamplerParameter</span>::<span class="nm">WrapT</span>,
+    <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureWrapMode</span>::<span class="nm">ClampToEdge</span>));</code></pre>
+
+  <h2>Binding at render time</h2>
+<pre><code>shadowTex.<span class="fn">active_bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureUnit</span>::<span class="nm">Texture3</span>,
+                        <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+shadowSampler.<span class="fn">bind</span>(<span class="nm">3</span>); <span class="cm">// unit index as integer</span>
+
+<span class="cm">// Unbind later:</span>
+<span class="ty">easygl</span>::<span class="ty">Sampler</span>::<span class="fn">unbind</span>(<span class="nm">3</span>);</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL sampler handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind(unit)</code></td><td>Bind sampler to texture unit index.</td></tr>
+    <tr><td><code>unbind(unit) [static]</code></td><td>Bind sampler 0 to unit.</td></tr>
+    <tr><td><code>set_parameter(pname, int)</code></td><td>Set an integer sampler parameter.</td></tr>
+    <tr><td><code>set_parameter(pname, float)</code></td><td>Set a float sampler parameter (e.g. LOD bias).</td></tr>
+    <tr><td><code>create_linear_clamp() [static]</code></td><td>Linear filter, clamp-to-edge wrap.</td></tr>
+    <tr><td><code>create_nearest_clamp() [static]</code></td><td>Nearest filter, clamp-to-edge wrap.</td></tr>
+    <tr><td><code>create_linear_repeat() [static]</code></td><td>Linear filter, repeat wrap.</td></tr>
+    <tr><td><code>create_mipmap_linear() [static]</code></td><td>Trilinear mipmap, repeat wrap.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

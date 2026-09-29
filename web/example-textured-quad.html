@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Textured Quad — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html" class="active">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Textured Quad</p>
+  <h1>Textured Quad</h1>
+  <p>Demonstrates loading a 2D texture and rendering it onto a quad with index buffer. Uses alpha blending for transparent textures.</p>
+
+  <h2>Shaders</h2>
+<pre><code><span class="kw">const char</span>* vertSrc = <span class="st">R"(#version 330 core
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aUV;
+out vec2 vUV;
+void main() {
+    gl_Position = vec4(aPos, 0.0, 1.0);
+    vUV = aUV;
+})"</span>;
+
+<span class="kw">const char</span>* fragSrc = <span class="st">R"(#version 330 core
+in vec2 vUV;
+uniform sampler2D uTex;
+out vec4 FragColor;
+void main() {
+    FragColor = texture(uTex, vUV);
+})"</span>;</code></pre>
+
+  <h2>Quad geometry (indexed)</h2>
+<pre><code><span class="kw">constexpr float</span> quadVerts[] = {
+    <span class="cm">// pos       uv</span>
+    <span class="nm">-0.5f</span>, <span class="nm">-0.5f</span>,  <span class="nm">0.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.5f</span>, <span class="nm">-0.5f</span>,  <span class="nm">1.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">0.5f</span>,  <span class="nm">0.5f</span>,  <span class="nm">1.0f</span>, <span class="nm">1.0f</span>,
+    <span class="nm">-0.5f</span>,  <span class="nm">0.5f</span>,  <span class="nm">0.0f</span>, <span class="nm">1.0f</span>,
+};
+<span class="kw">constexpr unsigned int</span> indices[] = { <span class="nm">0</span>, <span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">0</span> };</code></pre>
+
+  <h2>Setup</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Program</span> prog(vertSrc, fragSrc);
+
+<span class="cm">// VAO + VBO + IBO</span>
+<span class="ty">easygl</span>::<span class="ty">VertexArray</span> vao;
+<span class="ty">easygl</span>::<span class="ty">Buffer</span>      vbo, ibo;
+vao.<span class="fn">create</span>(); vbo.<span class="fn">create</span>(); ibo.<span class="fn">create</span>();
+
+vao.<span class="fn">bind</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, quadVerts, <span class="kw">sizeof</span>(quadVerts));
+ibo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">ElementArray</span>);
+ibo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">ElementArray</span>, indices, <span class="kw">sizeof</span>(indices));
+
+<span class="kw">constexpr std::size_t</span> stride = <span class="nm">4</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>);
+vao.<span class="fn">set_attribute</span>({<span class="nm">0</span>, <span class="nm">2</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, stride, <span class="nm">0</span>, <span class="kw">true</span>});
+vao.<span class="fn">set_attribute</span>({<span class="nm">1</span>, <span class="nm">2</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, stride, <span class="nm">2</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>), <span class="kw">true</span>});
+
+<span class="cm">// Texture (assume stb_image loaded pixels into imageData)</span>
+<span class="ty">easygl</span>::<span class="ty">Texture</span> tex;
+tex.<span class="fn">create</span>();
+tex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MinFilter</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMinFilter</span>::<span class="nm">LinearMipmapLinear</span>));
+tex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                   <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MagFilter</span>,
+                   <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMagFilter</span>::<span class="nm">Linear</span>));
+tex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, <span class="nm">4</span>,
+                    <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>, imgWidth, imgHeight);
+tex.<span class="fn">set_sub_image_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                      <span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">0</span>, imgWidth, imgHeight,
+                      <span class="ty">easygl</span>::<span class="ty">PixelFormat</span>::<span class="nm">Rgba</span>,
+                      <span class="ty">easygl</span>::<span class="ty">PixelType</span>::<span class="nm">UnsignedByte</span>,
+                      imageData);
+tex.<span class="fn">generate_mipmap</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+
+<span class="cm">// Enable alpha blending</span>
+device.<span class="fn">set_blend_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_blend_func</span>(<span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">SrcAlpha</span>,
+                       <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">OneMinusSrcAlpha</span>);</code></pre>
+
+  <h2>Render loop draw call</h2>
+<pre><code>device.<span class="fn">set_clear_color</span>(<span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">1.0f</span>);
+device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span>);
+
+prog.<span class="fn">use</span>();
+tex.<span class="fn">active_bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureUnit</span>::<span class="nm">Texture0</span>,
+                <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+prog.<span class="fn">set_uniform</span>(prog.<span class="fn">uniform_location</span>(<span class="st">"uTex"</span>), <span class="nm">0</span>); <span class="cm">// sampler2D = unit 0</span>
+
+vao.<span class="fn">bind</span>();
+device.<span class="fn">draw_elements</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>,
+                       <span class="nm">6</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedInt</span>, <span class="kw">nullptr</span>);</code></pre>
+
+  <h2>Key points</h2>
+  <ul>
+    <li>The IBO is bound while the VAO is bound — it becomes part of the VAO state.</li>
+    <li><code>set_storage_2d</code> + <code>set_sub_image_2d</code> is preferred over <code>set_image_2d</code> because the storage is immutable and avoids later resizing.</li>
+    <li><code>active_bind</code> activates the texture unit and binds in one call.</li>
+    <li>The sampler uniform receives the <em>integer unit index</em> (0), not the <code>TextureUnit</code> enum.</li>
+  </ul>
+</main>
+</body>
+</html>

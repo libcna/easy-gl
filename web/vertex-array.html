@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VertexArray — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html" class="active">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › VertexArray</p>
+  <h1>VertexArray</h1>
+  <p>Manages an OpenGL Vertex Array Object (VAO). Captures vertex attribute format, buffer bindings and the element array buffer binding.</p>
+
+  <h2>VertexAttribute struct</h2>
+<pre><code><span class="kw">struct</span> <span class="ty">VertexAttribute</span> {
+    <span class="kw">unsigned int</span> index           = <span class="nm">0</span>;
+    <span class="kw">int</span>          components      = <span class="nm">0</span>;         <span class="cm">// 1–4</span>
+    <span class="ty">DataType</span>     type            = <span class="ty">DataType</span>::<span class="nm">Float</span>;
+    <span class="kw">bool</span>         normalized      = <span class="kw">false</span>;
+    std::<span class="ty">size_t</span>  stride_in_bytes = <span class="nm">0</span>;
+    std::<span class="ty">size_t</span>  offset_in_bytes = <span class="nm">0</span>;
+    <span class="kw">bool</span>         enabled         = <span class="kw">true</span>;
+};</code></pre>
+
+  <h2>Basic usage — interleaved attributes</h2>
+<pre><code><span class="kw">struct</span> <span class="ty">Vertex</span> {
+    <span class="kw">float</span> pos[<span class="nm">3</span>];
+    <span class="kw">float</span> normal[<span class="nm">3</span>];
+    <span class="kw">float</span> uv[<span class="nm">2</span>];
+};
+
+<span class="ty">easygl</span>::<span class="ty">VertexArray</span> vao;
+<span class="ty">easygl</span>::<span class="ty">Buffer</span>      vbo;
+vao.<span class="fn">create</span>();
+vbo.<span class="fn">create</span>();
+
+vao.<span class="fn">bind</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, meshVertices, vertexCount * <span class="kw">sizeof</span>(<span class="ty">Vertex</span>));
+
+<span class="kw">constexpr std::size_t</span> stride = <span class="kw">sizeof</span>(<span class="ty">Vertex</span>);
+
+vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{
+    .index = <span class="nm">0</span>, .components = <span class="nm">3</span>, .type = <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>,
+    .normalized = <span class="kw">false</span>, .stride_in_bytes = stride,
+    .offset_in_bytes = <span class="fn">offsetof</span>(<span class="ty">Vertex</span>, pos), .enabled = <span class="kw">true</span>});
+
+vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{
+    .index = <span class="nm">1</span>, .components = <span class="nm">3</span>, .type = <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>,
+    .normalized = <span class="kw">false</span>, .stride_in_bytes = stride,
+    .offset_in_bytes = <span class="fn">offsetof</span>(<span class="ty">Vertex</span>, normal), .enabled = <span class="kw">true</span>});
+
+vao.<span class="fn">set_attribute</span>(<span class="ty">easygl</span>::<span class="ty">VertexAttribute</span>{
+    .index = <span class="nm">2</span>, .components = <span class="nm">2</span>, .type = <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>,
+    .normalized = <span class="kw">false</span>, .stride_in_bytes = stride,
+    .offset_in_bytes = <span class="fn">offsetof</span>(<span class="ty">Vertex</span>, uv), .enabled = <span class="kw">true</span>});</code></pre>
+
+  <h2>Integer attributes (flat inputs in shaders)</h2>
+<pre><code><span class="cm">// Use set_attribute_i_pointer for int/uint attributes</span>
+vao.<span class="fn">set_attribute_i_pointer</span>(
+    <span class="nm">3</span>,                                   <span class="cm">// index</span>
+    <span class="nm">4</span>,                                   <span class="cm">// components</span>
+    <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedByte</span>,
+    <span class="kw">sizeof</span>(<span class="ty">Vertex</span>),
+    reinterpret_cast&lt;<span class="kw">const void</span>*&gt;(<span class="fn">offsetof</span>(<span class="ty">Vertex</span>, boneIds)));</code></pre>
+
+  <h2>Instancing — per-instance attributes</h2>
+<pre><code><span class="cm">// modelMatrices buffer is bound separately</span>
+instanceVbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+
+<span class="cm">// mat4 takes 4 attribute slots (one per row)</span>
+<span class="kw">for</span> (<span class="kw">unsigned int</span> i = <span class="nm">0</span>; i &lt; <span class="nm">4</span>; ++i) {
+    vao.<span class="fn">set_attribute_pointer</span>(
+        <span class="nm">4</span> + i, <span class="nm">4</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>,
+        <span class="nm">64</span>,   <span class="cm">// stride = sizeof(mat4)</span>
+        reinterpret_cast&lt;<span class="kw">const void</span>*&gt;(i * <span class="nm">16</span>));
+    vao.<span class="fn">enable_attribute</span>(<span class="nm">4</span> + i);
+    vao.<span class="fn">set_attribute_divisor</span>(<span class="nm">4</span> + i, <span class="nm">1</span>); <span class="cm">// advance once per instance</span>
+}</code></pre>
+
+  <h2>With an index buffer</h2>
+<pre><code>vao.<span class="fn">bind</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+ibo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">ElementArray</span>); <span class="cm">// captured by the VAO</span>
+<span class="cm">// ... set attributes ...</span>
+
+<span class="cm">// Render:</span>
+vao.<span class="fn">bind</span>();
+device.<span class="fn">draw_elements</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>,
+                       indexCount, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedInt</span>, <span class="kw">nullptr</span>);</code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL VAO handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind()</code></td><td>Bind this VAO.</td></tr>
+    <tr><td><code>unbind()</code></td><td>Bind VAO 0 (unbind).</td></tr>
+    <tr><td><code>set_attribute(VertexAttribute)</code></td><td>Configure and optionally enable a vertex attribute.</td></tr>
+    <tr><td><code>set_attribute_pointer(idx, size, type, norm, stride, ptr)</code></td><td>Low-level attribute pointer setup.</td></tr>
+    <tr><td><code>set_attribute_i_pointer(idx, size, type, stride, ptr)</code></td><td>Integer attribute pointer (no float conversion).</td></tr>
+    <tr><td><code>enable_attribute(idx)</code></td><td>Enable vertex attribute at index.</td></tr>
+    <tr><td><code>disable_attribute(idx)</code></td><td>Disable vertex attribute at index.</td></tr>
+    <tr><td><code>set_attribute_divisor(idx, divisor)</code></td><td>Set instancing divisor (0 = per-vertex, 1 = per-instance).</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

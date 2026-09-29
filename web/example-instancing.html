@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instancing — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html" class="active">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Instancing</p>
+  <h1>Instancing</h1>
+  <p>Draw thousands of objects in a single draw call by storing per-instance data in a buffer and using a per-instance vertex attribute divisor.</p>
+
+  <h2>Shader</h2>
+<pre><code><span class="kw">const char</span>* vertSrc = <span class="st">R"(#version 330 core
+layout (location = 0) in vec2 aPos;      // per-vertex
+layout (location = 1) in vec3 aColor;    // per-vertex
+layout (location = 2) in vec2 aOffset;   // per-instance
+layout (location = 3) in float aScale;   // per-instance
+
+out vec3 vColor;
+
+void main() {
+    gl_Position = vec4(aPos * aScale + aOffset, 0.0, 1.0);
+    vColor = aColor;
+})"</span>;</code></pre>
+
+  <h2>Per-instance data</h2>
+<pre><code><span class="kw">struct</span> <span class="ty">Instance</span> {
+    <span class="kw">float</span> offsetX, offsetY;
+    <span class="kw">float</span> scale;
+};
+
+std::vector&lt;<span class="ty">Instance</span>&gt; instances;
+<span class="kw">for</span> (<span class="kw">int</span> i = <span class="nm">0</span>; i &lt; <span class="nm">1000</span>; ++i) {
+    instances.push_back({
+        ((<span class="kw">float</span>)(rand() % <span class="nm">2000</span>) - <span class="nm">1000.0f</span>) / <span class="nm">1000.0f</span>,
+        ((<span class="kw">float</span>)(rand() % <span class="nm">2000</span>) - <span class="nm">1000.0f</span>) / <span class="nm">1000.0f</span>,
+        <span class="nm">0.02f</span> + (<span class="kw">float</span>)(rand() % <span class="nm">100</span>) / <span class="nm">1000.0f</span>
+    });
+}</code></pre>
+
+  <h2>Setup VAO with two VBOs</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">VertexArray</span> vao;
+<span class="ty">easygl</span>::<span class="ty">Buffer</span>      meshVbo, instanceVbo;
+vao.<span class="fn">create</span>(); meshVbo.<span class="fn">create</span>(); instanceVbo.<span class="fn">create</span>();
+
+vao.<span class="fn">bind</span>();
+
+<span class="cm">// Per-vertex attributes (attribute 0 and 1)</span>
+meshVbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+meshVbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, quadVerts, <span class="kw">sizeof</span>(quadVerts));
+<span class="kw">constexpr std::size_t</span> meshStride = <span class="nm">5</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>);
+vao.<span class="fn">set_attribute</span>({<span class="nm">0</span>, <span class="nm">2</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, meshStride, <span class="nm">0</span>, <span class="kw">true</span>});
+vao.<span class="fn">set_attribute</span>({<span class="nm">1</span>, <span class="nm">3</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>, meshStride, <span class="nm">2</span>*<span class="kw">sizeof</span>(<span class="kw">float</span>), <span class="kw">true</span>});
+
+<span class="cm">// Per-instance attributes (attribute 2 and 3)</span>
+instanceVbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+instanceVbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>,
+                       instances.data(), instances.size() * <span class="kw">sizeof</span>(<span class="ty">Instance</span>),
+                       <span class="ty">easygl</span>::<span class="ty">BufferUsage</span>::<span class="nm">DynamicDraw</span>);
+
+<span class="kw">constexpr std::size_t</span> instStride = <span class="kw">sizeof</span>(<span class="ty">Instance</span>);
+
+<span class="cm">// offset: vec2 at byte 0</span>
+vao.<span class="fn">set_attribute_pointer</span>(<span class="nm">2</span>, <span class="nm">2</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>,
+                            instStride, reinterpret_cast&lt;<span class="kw">const void</span>*&gt;(<span class="nm">0</span>));
+vao.<span class="fn">enable_attribute</span>(<span class="nm">2</span>);
+vao.<span class="fn">set_attribute_divisor</span>(<span class="nm">2</span>, <span class="nm">1</span>); <span class="cm">// advance once per instance</span>
+
+<span class="cm">// scale: float at byte 8</span>
+vao.<span class="fn">set_attribute_pointer</span>(<span class="nm">3</span>, <span class="nm">1</span>, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">Float</span>, <span class="kw">false</span>,
+                            instStride, reinterpret_cast&lt;<span class="kw">const void</span>*&gt;(<span class="nm">2</span> * <span class="kw">sizeof</span>(<span class="kw">float</span>)));
+vao.<span class="fn">enable_attribute</span>(<span class="nm">3</span>);
+vao.<span class="fn">set_attribute_divisor</span>(<span class="nm">3</span>, <span class="nm">1</span>);</code></pre>
+
+  <h2>Draw call</h2>
+<pre><code>prog.<span class="fn">use</span>();
+vao.<span class="fn">bind</span>();
+device.<span class="fn">draw_arrays_instanced</span>(
+    <span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>,
+    <span class="nm">0</span>,                  <span class="cm">// first vertex</span>
+    meshVertexCount,     <span class="cm">// vertices per instance</span>
+    <span class="nm">1000</span>);               <span class="cm">// instance count</span></code></pre>
+
+  <h2>Updating instances dynamically</h2>
+<pre><code><span class="cm">// Move instances on CPU, then re-upload the relevant range</span>
+<span class="kw">for</span> (<span class="kw">auto</span>&amp; inst : instances) { inst.offsetX += speed * dt; }
+
+instanceVbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+instanceVbo.<span class="fn">set_sub_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>,
+                           instances.data(),
+                           instances.size() * <span class="kw">sizeof</span>(<span class="ty">Instance</span>),
+                           <span class="nm">0</span>);</code></pre>
+
+  <h2>Key points</h2>
+  <ul>
+    <li>Divisor 0 = advance once per <em>vertex</em> (default). Divisor 1 = advance once per <em>instance</em>.</li>
+    <li>Use <code>draw_arrays_instanced</code> or <code>draw_elements_instanced</code> depending on whether you have an index buffer.</li>
+    <li>Keep the instance buffer as <code>DynamicDraw</code> if you update it each frame.</li>
+    <li>For large instance counts consider GPU-side update via compute shader + SSBO.</li>
+  </ul>
+</main>
+</body>
+</html>

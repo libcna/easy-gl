@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>easy-gl — C++ OpenGL RAII Wrapper</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html" class="active">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <h1>easy-gl</h1>
+  <p class="crumb">Documentation</p>
+
+  <div class="hero">
+    <p>easy-gl is a modern C++20 RAII wrapper around OpenGL. It provides safe resource ownership, convenient high-level methods, and full type safety — all delegating low-level calls to <strong>meta-gl</strong> instead of raw OpenGL.</p>
+  </div>
+
+  <h2>What easy-gl gives you</h2>
+  <ul>
+    <li>Move-only RAII resource classes — textures, buffers, programs, framebuffers all clean up automatically.</li>
+    <li>Type-safe OpenGL enums from meta-gl — no more integer constants scattered through your code.</li>
+    <li>A <a href="device.html">Device</a> class that centralises all render-state mutations and draw calls.</li>
+    <li>Full C++20 — <code>std::span</code>, <code>enum class</code>, constexpr, concepts where they help.</li>
+    <li>No dependency on raw OpenGL headers in your application code.</li>
+  </ul>
+
+  <h2>Layer diagram</h2>
+  <div class="layer-diagram">
+    <div class="layer">OpenGL / OpenGL ES</div>
+    <div class="arrow">↓</div>
+    <div class="layer">meta-gl — procedural type-safe wrappers, enum classes, typed handles, <code>std::span</code></div>
+    <div class="arrow">↓</div>
+    <div class="layer hl">easy-gl — OOP RAII classes, move-only ownership, convenience methods</div>
+    <div class="arrow">↓</div>
+    <div class="layer">Your application</div>
+  </div>
+
+  <h2>Resource classes at a glance</h2>
+  <div class="grid">
+    <a href="buffer.html" class="card"><h3>Buffer</h3><p>Vertex, index, uniform, SSBO and other GPU buffer types.</p></a>
+    <a href="texture.html" class="card"><h3>Texture</h3><p>2D, 3D, array, cubemap textures with mipmap generation.</p></a>
+    <a href="shader.html" class="card"><h3>Shader</h3><p>Vertex, fragment, geometry, compute shader compilation.</p></a>
+    <a href="program.html" class="card"><h3>Program</h3><p>Link shaders, set uniforms, use programs.</p></a>
+    <a href="vertex-array.html" class="card"><h3>VertexArray</h3><p>Vertex attribute layout definition and VAO management.</p></a>
+    <a href="framebuffer.html" class="card"><h3>Framebuffer</h3><p>Offscreen rendering targets with attachment management.</p></a>
+    <a href="renderbuffer.html" class="card"><h3>Renderbuffer</h3><p>Depth/stencil storage for framebuffer attachments.</p></a>
+    <a href="sampler.html" class="card"><h3>Sampler</h3><p>Decoupled texture sampling parameters.</p></a>
+    <a href="query.html" class="card"><h3>Query</h3><p>Occlusion, primitives-generated and timing queries.</p></a>
+    <a href="sync.html" class="card"><h3>Sync</h3><p>GPU/CPU synchronisation fence objects.</p></a>
+    <a href="transform-feedback.html" class="card"><h3>TransformFeedback</h3><p>Capture vertex shader outputs into buffers.</p></a>
+  </div>
+
+  <h2>Minimal example</h2>
+<pre><code><span class="cm">// Initialize the device with a function pointer loader (SDL3 shown)</span>
+<span class="ty">easygl</span>::<span class="ty">Device</span> device;
+device.<span class="fn">initialize</span>(reinterpret_cast&lt;<span class="ty">easygl</span>::<span class="ty">GLGetProcAddressFn</span>&gt;(SDL_GL_GetProcAddress));
+
+<span class="cm">// Create a shader program from source strings directly</span>
+<span class="ty">easygl</span>::<span class="ty">Program</span> program(vertSrc, fragSrc);
+
+<span class="cm">// RAII buffer — destroyed automatically when it goes out of scope</span>
+<span class="ty">easygl</span>::<span class="ty">Buffer</span> vbo;
+vbo.<span class="fn">create</span>();
+vbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>);
+vbo.<span class="fn">set_data</span>(<span class="ty">easygl</span>::<span class="ty">BufferTarget</span>::<span class="nm">Array</span>, vertices, <span class="kw">sizeof</span>(vertices));
+
+<span class="cm">// Render loop</span>
+device.<span class="fn">set_clear_color</span>(<span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">0.1f</span>, <span class="nm">1.0f</span>);
+device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span> | <span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Depth</span>);
+program.<span class="fn">use</span>();
+device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">3</span>);</code></pre>
+
+  <h2>Quick navigation</h2>
+  <table>
+    <tr><th>Page</th><th>What it covers</th></tr>
+    <tr><td><a href="getting-started.html">Getting Started</a></td><td>CMake integration, first program, compile and run.</td></tr>
+    <tr><td><a href="architecture.html">Architecture</a></td><td>How easy-gl, meta-gl and OpenGL relate to each other.</td></tr>
+    <tr><td><a href="ownership.html">Ownership &amp; RAII</a></td><td>Move semantics, generation tracking, context recovery.</td></tr>
+    <tr><td><a href="error-handling.html">Error Handling</a></td><td>Exceptions, validation, debug output.</td></tr>
+    <tr><td><a href="example-hello-triangle.html">Hello Triangle</a></td><td>Full SDL3 + easy-gl example with annotation.</td></tr>
+  </table>
+</main>
+</body>
+</html>

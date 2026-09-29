@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Framebuffer — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html" class="active">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Framebuffer</p>
+  <h1>Framebuffer</h1>
+  <p>Manages an OpenGL Framebuffer Object (FBO). Used for offscreen rendering, shadow maps, post-processing, etc. Non-copyable, movable, RAII.</p>
+
+  <h2>Simple offscreen FBO with a texture color attachment</h2>
+<pre><code><span class="cm">// Create a color texture</span>
+<span class="ty">easygl</span>::<span class="ty">Texture</span> colorTex;
+colorTex.<span class="fn">create</span>();
+colorTex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+colorTex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, <span class="nm">1</span>,
+                          <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>, width, height);
+
+<span class="cm">// Create a depth renderbuffer</span>
+<span class="ty">easygl</span>::<span class="ty">Renderbuffer</span> depthRbo;
+depthRbo.<span class="fn">create</span>();
+depthRbo.<span class="fn">bind</span>();
+depthRbo.<span class="fn">set_storage</span>(<span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">DepthComponent24</span>, width, height);
+
+<span class="cm">// Assemble the FBO</span>
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span> fbo;
+fbo.<span class="fn">create</span>();
+fbo.<span class="fn">bind</span>();
+
+fbo.<span class="fn">attach_texture_2d</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>,
+    <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+    colorTex,
+    <span class="nm">0</span>); <span class="cm">// mip level</span>
+
+fbo.<span class="fn">attach_renderbuffer</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
+    depthRbo);
+
+<span class="kw">if</span> (!fbo.<span class="fn">is_complete</span>()) {
+    std::cerr &lt;&lt; <span class="st">"FBO incomplete!\n"</span>;
+}</code></pre>
+
+  <h2>MRT — multiple render targets</h2>
+<pre><code><span class="cm">// Attach two color textures</span>
+fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>, ..., albedoTex, <span class="nm">0</span>);
+fbo.<span class="fn">attach_texture_2d</span>(target, <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color1</span>, ..., normalTex, <span class="nm">0</span>);
+
+<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span> bufs[] = {
+    <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span>::<span class="nm">ColorAttachment0</span>,
+    <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span>::<span class="nm">ColorAttachment1</span>
+};
+fbo.<span class="fn">set_draw_buffers</span>({bufs, <span class="nm">2</span>});</code></pre>
+
+  <h2>Shadow map FBO (depth-only)</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Texture</span> shadowTex;
+shadowTex.<span class="fn">create</span>();
+shadowTex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+shadowTex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, <span class="nm">1</span>,
+                           <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">DepthComponent24</span>,
+                           shadowSize, shadowSize);
+
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span> shadowFbo;
+shadowFbo.<span class="fn">create</span>();
+shadowFbo.<span class="fn">bind</span>();
+shadowFbo.<span class="fn">attach_texture_2d</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
+    <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+    shadowTex, <span class="nm">0</span>);
+
+<span class="cm">// No color — tell GL explicitly:</span>
+<span class="kw">const</span> <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span> none[] = { <span class="ty">easygl</span>::<span class="ty">DrawBuffer</span>::<span class="nm">None</span> };
+shadowFbo.<span class="fn">set_draw_buffers</span>({none, <span class="nm">1</span>});
+shadowFbo.<span class="fn">set_read_buffer</span>(<span class="ty">easygl</span>::<span class="ty">ReadBuffer</span>::<span class="nm">None</span>);</code></pre>
+
+  <h2>Blitting (resolve MSAA, copy regions)</h2>
+<pre><code>msFbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Read</span>);
+resolveFbo.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Draw</span>);
+
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">blit</span>(
+    <span class="nm">0</span>, <span class="nm">0</span>, width, height,   <span class="cm">// src rect</span>
+    <span class="nm">0</span>, <span class="nm">0</span>, width, height,   <span class="cm">// dst rect</span>
+    <span class="ty">easygl</span>::<span class="ty">ClearBufferBit</span>::<span class="nm">Color</span>,
+    <span class="ty">easygl</span>::<span class="ty">BlitFilter</span>::<span class="nm">Nearest</span>);</code></pre>
+
+  <h2>Restore default framebuffer</h2>
+<pre><code><span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">unbind</span>(); <span class="cm">// static — binds FBO 0</span></code></pre>
+
+  <h2>Method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>create()</code></td><td>Allocate GL FBO handle.</td></tr>
+    <tr><td><code>destroy()</code></td><td>Free handle. Noexcept.</td></tr>
+    <tr><td><code>bind(target)</code></td><td>Bind to Framebuffer, Read or Draw target.</td></tr>
+    <tr><td><code>unbind(target) [static]</code></td><td>Bind FBO 0.</td></tr>
+    <tr><td><code>attach_texture_2d(target, attachment, texTarget, texture, level)</code></td><td>Attach a 2D texture (<code>const Texture&amp;</code>).</td></tr>
+    <tr><td><code>attach_texture_layer(target, attachment, texture, level, layer)</code></td><td>Attach a layer of a 3D or array texture (<code>const Texture&amp;</code>).</td></tr>
+    <tr><td><code>attach_renderbuffer(target, attachment, renderbuffer)</code></td><td>Attach a renderbuffer (<code>const Renderbuffer&amp;</code>).</td></tr>
+    <tr><td><code>check_status(target)</code></td><td>Returns FramebufferStatus enum.</td></tr>
+    <tr><td><code>is_complete(target)</code></td><td>True if status == Complete.</td></tr>
+    <tr><td><code>set_draw_buffers(span)</code></td><td>Set draw buffer targets for MRT.</td></tr>
+    <tr><td><code>set_read_buffer(src)</code></td><td>Set read buffer source.</td></tr>
+    <tr><td><code>invalidate(target, attachments)</code></td><td>Hint that attachment data is no longer needed.</td></tr>
+    <tr><td><code>invalidate_sub(target, attachments, x, y, w, h)</code></td><td>Invalidate a sub-region of attachments.</td></tr>
+    <tr><td><code>blit(...) [static]</code></td><td>Copy/resolve between read and draw framebuffers.</td></tr>
+    <tr><td><code>blit_to(dst, ...) const</code></td><td>Instance method to blit from this FBO to another.</td></tr>
+    <tr><td><code>create_color_depth(color, depth) [static]</code></td><td>Create FBO with one color texture and one depth renderbuffer.</td></tr>
+    <tr><td><code>is_created()</code></td><td>True if GL handle allocated.</td></tr>
+    <tr><td><code>native_handle()</code></td><td>Raw GL integer ID.</td></tr>
+    <tr><td><code>reset_handle_no_gl()</code></td><td>Context-loss recovery.</td></tr>
+  </table>
+</main>
+</body>
+</html>

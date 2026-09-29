@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Offscreen Rendering — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html" class="active">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Offscreen Rendering</p>
+  <h1>Offscreen Rendering</h1>
+  <p>Render a scene to a texture (FBO), then display it on a fullscreen quad as a post-processing step.</p>
+
+  <h2>Overview</h2>
+  <p>The pattern is:</p>
+  <ol>
+    <li>Create an FBO with a color texture and a depth renderbuffer.</li>
+    <li>Bind the FBO, render the scene into it.</li>
+    <li>Unbind the FBO (bind default framebuffer).</li>
+    <li>Draw a fullscreen quad, sampling from the color texture.</li>
+  </ol>
+
+  <h2>Step 1 — Create the render target</h2>
+<pre><code><span class="kw">constexpr int</span> RT_W = <span class="nm">1280</span>, RT_H = <span class="nm">720</span>;
+
+<span class="cm">// Color attachment</span>
+<span class="ty">easygl</span>::<span class="ty">Texture</span> colorTex;
+colorTex.<span class="fn">create</span>();
+colorTex.<span class="fn">bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+colorTex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                         <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MinFilter</span>,
+                         <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMinFilter</span>::<span class="nm">Linear</span>));
+colorTex.<span class="fn">set_parameter</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+                         <span class="ty">easygl</span>::<span class="ty">TextureParameter</span>::<span class="nm">MagFilter</span>,
+                         <span class="kw">static_cast</span>&lt;<span class="kw">int</span>&gt;(<span class="ty">easygl</span>::<span class="ty">TextureMagFilter</span>::<span class="nm">Linear</span>));
+colorTex.<span class="fn">set_storage_2d</span>(<span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>, <span class="nm">1</span>,
+                          <span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">Rgba8</span>, RT_W, RT_H);
+
+<span class="cm">// Depth attachment</span>
+<span class="ty">easygl</span>::<span class="ty">Renderbuffer</span> depthRbo;
+depthRbo.<span class="fn">create</span>();
+depthRbo.<span class="fn">bind</span>();
+depthRbo.<span class="fn">set_storage</span>(<span class="ty">easygl</span>::<span class="ty">InternalFormat</span>::<span class="nm">DepthComponent24</span>, RT_W, RT_H);
+
+<span class="cm">// FBO</span>
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span> fbo;
+fbo.<span class="fn">create</span>();
+fbo.<span class="fn">bind</span>();
+fbo.<span class="fn">attach_texture_2d</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Color0</span>,
+    <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>,
+    colorTex.<span class="fn">native_handle</span>(), <span class="nm">0</span>);
+fbo.<span class="fn">attach_renderbuffer</span>(
+    <span class="ty">easygl</span>::<span class="ty">FramebufferTarget</span>::<span class="nm">Framebuffer</span>,
+    <span class="ty">easygl</span>::<span class="ty">FramebufferAttachment</span>::<span class="nm">Depth</span>,
+    depthRbo.<span class="fn">native_handle</span>());
+
+<span class="kw">if</span> (!fbo.<span class="fn">is_complete</span>()) {
+    <span class="kw">throw</span> std::<span class="ty">runtime_error</span>(<span class="st">"FBO not complete"</span>);
+}
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">unbind</span>();</code></pre>
+
+  <h2>Post-processing shader (inversion)</h2>
+<pre><code><span class="kw">const char</span>* postVertSrc = <span class="st">R"(#version 330 core
+layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aUV;
+out vec2 vUV;
+void main() { gl_Position = vec4(aPos, 0.0, 1.0); vUV = aUV; })"</span>;
+
+<span class="kw">const char</span>* postFragSrc = <span class="st">R"(#version 330 core
+in vec2 vUV;
+uniform sampler2D uScreen;
+out vec4 FragColor;
+void main() {
+    vec4 col = texture(uScreen, vUV);
+    FragColor = vec4(1.0 - col.rgb, 1.0); // colour inversion
+})"</span>;
+
+<span class="ty">easygl</span>::<span class="ty">Program</span> postProg(postVertSrc, postFragSrc);</code></pre>
+
+  <h2>Fullscreen quad</h2>
+<pre><code><span class="kw">constexpr float</span> fsQuad[] = {
+    <span class="nm">-1.0f</span>, <span class="nm">-1.0f</span>,  <span class="nm">0.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">1.0f</span>, <span class="nm">-1.0f</span>,  <span class="nm">1.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">1.0f</span>,  <span class="nm">1.0f</span>,  <span class="nm">1.0f</span>, <span class="nm">1.0f</span>,
+    <span class="nm">-1.0f</span>, <span class="nm">-1.0f</span>,  <span class="nm">0.0f</span>, <span class="nm">0.0f</span>,
+     <span class="nm">1.0f</span>,  <span class="nm">1.0f</span>,  <span class="nm">1.0f</span>, <span class="nm">1.0f</span>,
+    <span class="nm">-1.0f</span>,  <span class="nm">1.0f</span>,  <span class="nm">0.0f</span>, <span class="nm">1.0f</span>,
+};
+<span class="ty">easygl</span>::<span class="ty">VertexArray</span> fsVao;
+<span class="ty">easygl</span>::<span class="ty">Buffer</span>      fsVbo;
+<span class="cm">// ... create, bind, upload, set_attribute same as before ...</span></code></pre>
+
+  <h2>Render loop</h2>
+<pre><code><span class="cm">// ---- Pass 1: render scene into FBO ----</span>
+fbo.<span class="fn">bind</span>();
+device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, RT_W, RT_H);
+device.<span class="fn">set_depth_test_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_clear_color</span>(<span class="nm">0.2f</span>, <span class="nm">0.2f</span>, <span class="nm">0.2f</span>, <span class="nm">1.0f</span>);
+device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span> | <span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Depth</span>);
+
+sceneProg.<span class="fn">use</span>();
+<span class="cm">// ... draw scene objects ...</span>
+
+<span class="cm">// ---- Pass 2: post-process onto default framebuffer ----</span>
+<span class="ty">easygl</span>::<span class="ty">Framebuffer</span>::<span class="fn">unbind</span>();
+device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, windowW, windowH);
+device.<span class="fn">set_depth_test_enabled</span>(<span class="kw">false</span>);
+device.<span class="fn">set_clear_color</span>(<span class="nm">1.0f</span>, <span class="nm">1.0f</span>, <span class="nm">1.0f</span>, <span class="nm">1.0f</span>);
+device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span>);
+
+postProg.<span class="fn">use</span>();
+colorTex.<span class="fn">active_bind</span>(<span class="ty">easygl</span>::<span class="ty">TextureUnit</span>::<span class="nm">Texture0</span>,
+                       <span class="ty">easygl</span>::<span class="ty">TextureTarget</span>::<span class="nm">Texture2D</span>);
+postProg.<span class="fn">set_uniform</span>(postProg.<span class="fn">uniform_location</span>(<span class="st">"uScreen"</span>), <span class="nm">0</span>);
+
+fsVao.<span class="fn">bind</span>();
+device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, <span class="nm">6</span>);</code></pre>
+
+  <h2>Key points</h2>
+  <ul>
+    <li>Disable depth testing on the post-process pass — you are drawing a flat fullscreen quad.</li>
+    <li>The color texture and renderbuffer are kept alive alongside the FBO — they must outlive the FBO's use.</li>
+    <li>The render target size (<code>RT_W × RT_H</code>) is independent of the window size.</li>
+  </ul>
+</main>
+</body>
+</html>

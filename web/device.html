@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Device — easy-gl</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav>
+  <div class="logo"><a href="index.html">easy-gl</a><small>C++ OpenGL RAII wrapper</small></div>
+  <h3>Guide</h3>
+  <a href="index.html">Overview</a>
+  <a href="getting-started.html">Getting Started</a>
+  <a href="architecture.html">Architecture</a>
+  <a href="ownership.html">Ownership &amp; RAII</a>
+  <a href="error-handling.html">Error Handling</a>
+  <h3>Core</h3>
+  <a href="device.html" class="active">Device</a>
+  <a href="capabilities.html">Capabilities</a>
+  <a href="config.html">Config</a>
+  <a href="context-info.html">ContextInfo</a>
+  <a href="feature.html">Feature</a>
+  <h3>Resources</h3>
+  <a href="buffer.html">Buffer</a>
+  <a href="texture.html">Texture</a>
+  <a href="shader.html">Shader</a>
+  <a href="program.html">Program</a>
+  <a href="program-pipeline.html">ProgramPipeline</a>
+  <a href="vertex-array.html">VertexArray</a>
+  <a href="framebuffer.html">Framebuffer</a>
+  <a href="renderbuffer.html">Renderbuffer</a>
+  <a href="sampler.html">Sampler</a>
+  <a href="query.html">Query</a>
+  <a href="sync.html">Sync</a>
+  <a href="transform-feedback.html">TransformFeedback</a>
+  <h3>Utilities</h3>
+  <a href="uniform-cache.html">UniformCache</a>
+  <a href="scoped-bind.html">ScopedBind</a>
+  <a href="scoped-debug-group.html">ScopedDebugGroup</a>
+  <a href="recoverable-resource.html">RecoverableResource</a>
+  <a href="resource-registry.html">ResourceRegistry</a>
+  <h3>Examples</h3>
+  <a href="example-hello-triangle.html">Hello Triangle</a>
+  <a href="example-textured-quad.html">Textured Quad</a>
+  <a href="example-offscreen.html">Offscreen Rendering</a>
+  <a href="example-instancing.html">Instancing</a>
+  <a href="example-compute.html">Compute Shader</a>
+</nav>
+<main>
+  <p class="crumb"><a href="index.html">easy-gl</a> › Device</p>
+  <h1>Device</h1>
+  <p><code>easygl::Device</code> is the central object for initialisation, render-state management, and draw calls. You typically create one per OpenGL context and use it throughout your application.</p>
+
+  <h2>Construction &amp; initialization</h2>
+<pre><code><span class="cm">// Default config</span>
+<span class="ty">easygl</span>::<span class="ty">Device</span> device;
+
+<span class="cm">// Custom config</span>
+<span class="ty">easygl</span>::<span class="ty">Config</span> cfg;
+cfg.enable_debug_logging = <span class="kw">true</span>;
+<span class="ty">easygl</span>::<span class="ty">Device</span> device(cfg);
+
+<span class="cm">// Must be called after the GL context is current</span>
+device.<span class="fn">initialize</span>(reinterpret_cast&lt;<span class="ty">easygl</span>::<span class="ty">GLGetProcAddressFn</span>&gt;(SDL_GL_GetProcAddress));</code></pre>
+
+  <h2>Capabilities &amp; features</h2>
+<pre><code><span class="kw">const auto</span>&amp; caps = device.<span class="fn">capabilities</span>();
+<span class="kw">const auto</span>&amp; info = caps.<span class="fn">context_info</span>();
+std::cout &lt;&lt; info.vendor &lt;&lt; <span class="st">' '</span> &lt;&lt; info.version_string &lt;&lt; <span class="st">'\n'</span>;
+
+<span class="kw">if</span> (device.<span class="fn">supports</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">ComputeShader</span>))
+    std::cout &lt;&lt; <span class="st">"Compute shaders available\n"</span>;
+
+device.<span class="fn">require</span>(<span class="ty">easygl</span>::<span class="ty">Feature</span>::<span class="nm">FramebufferObject</span>); <span class="cm">// throws if missing</span></code></pre>
+
+  <h2>ClearFlags</h2>
+  <p><code>ClearFlags</code> is a bitmask enum defined in <code>Device.hpp</code>:</p>
+  <table>
+    <tr><th>Value</th><th>Clears</th></tr>
+    <tr><td><code>ClearFlags::None</code></td><td>Nothing</td></tr>
+    <tr><td><code>ClearFlags::Color</code></td><td>Color buffer</td></tr>
+    <tr><td><code>ClearFlags::Depth</code></td><td>Depth buffer</td></tr>
+    <tr><td><code>ClearFlags::Stencil</code></td><td>Stencil buffer</td></tr>
+  </table>
+<pre><code>device.<span class="fn">set_clear_color</span>(<span class="nm">0.0f</span>, <span class="nm">0.0f</span>, <span class="nm">0.0f</span>, <span class="nm">1.0f</span>);
+device.<span class="fn">set_clear_depth</span>(<span class="nm">1.0f</span>);
+device.<span class="fn">set_clear_stencil</span>(<span class="nm">0</span>);
+device.<span class="fn">clear</span>(<span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Color</span> | <span class="ty">easygl</span>::<span class="ty">ClearFlags</span>::<span class="nm">Depth</span>);</code></pre>
+
+  <h2>Viewport &amp; scissor</h2>
+<pre><code>device.<span class="fn">set_viewport</span>(<span class="nm">0</span>, <span class="nm">0</span>, width, height);
+
+<span class="kw">int</span> x, y, w, h;
+device.<span class="fn">get_viewport</span>(x, y, w, h);
+
+device.<span class="fn">set_scissor_test_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_scissor</span>(<span class="nm">10</span>, <span class="nm">10</span>, <span class="nm">200</span>, <span class="nm">200</span>);</code></pre>
+
+  <h2>Blending</h2>
+<pre><code>device.<span class="fn">set_blend_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_blend_func</span>(
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">SrcAlpha</span>,
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">OneMinusSrcAlpha</span>);
+device.<span class="fn">set_blend_equation</span>(<span class="ty">easygl</span>::<span class="ty">BlendEquation</span>::<span class="nm">Add</span>);
+
+<span class="cm">// Separate RGB / alpha factors:</span>
+device.<span class="fn">set_blend_func_separate</span>(
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">SrcAlpha</span>,
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">OneMinusSrcAlpha</span>,
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">One</span>,
+    <span class="ty">easygl</span>::<span class="ty">BlendFactor</span>::<span class="nm">Zero</span>);</code></pre>
+
+  <h2>Depth test</h2>
+<pre><code>device.<span class="fn">set_depth_test_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_depth_mask</span>(<span class="kw">true</span>);
+device.<span class="fn">set_depth_func</span>(<span class="ty">easygl</span>::<span class="ty">CompareFunc</span>::<span class="nm">Less</span>);
+device.<span class="fn">set_depth_range</span>(<span class="nm">0.0f</span>, <span class="nm">1.0f</span>);</code></pre>
+
+  <h2>Stencil test</h2>
+<pre><code>device.<span class="fn">set_stencil_test_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_stencil_func</span>(<span class="ty">easygl</span>::<span class="ty">CompareFunc</span>::<span class="nm">Always</span>, <span class="nm">1</span>, <span class="nm">0xFF</span>);
+device.<span class="fn">set_stencil_op</span>(
+    <span class="ty">easygl</span>::<span class="ty">StencilOp</span>::<span class="nm">Keep</span>,
+    <span class="ty">easygl</span>::<span class="ty">StencilOp</span>::<span class="nm">Keep</span>,
+    <span class="ty">easygl</span>::<span class="ty">StencilOp</span>::<span class="nm">Replace</span>);
+device.<span class="fn">set_stencil_mask</span>(<span class="nm">0xFF</span>);</code></pre>
+
+  <h2>Cull face</h2>
+<pre><code>device.<span class="fn">set_cull_face_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_cull_face</span>(<span class="ty">easygl</span>::<span class="ty">CullFace</span>::<span class="nm">Back</span>);
+device.<span class="fn">set_front_face</span>(<span class="ty">easygl</span>::<span class="ty">FrontFace</span>::<span class="nm">CounterClockwise</span>);</code></pre>
+
+  <h2>Draw calls</h2>
+<pre><code><span class="cm">// Non-indexed</span>
+device.<span class="fn">draw_arrays</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, vertexCount);
+
+<span class="cm">// Indexed</span>
+device.<span class="fn">draw_elements</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>,
+                     indexCount, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedInt</span>, <span class="kw">nullptr</span>);
+
+<span class="cm">// Instanced</span>
+device.<span class="fn">draw_arrays_instanced</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>, <span class="nm">0</span>, vertexCount, instanceCount);
+device.<span class="fn">draw_elements_instanced</span>(<span class="ty">easygl</span>::<span class="ty">PrimitiveType</span>::<span class="nm">Triangles</span>,
+                               indexCount, <span class="ty">easygl</span>::<span class="ty">DataType</span>::<span class="nm">UnsignedInt</span>,
+                               <span class="kw">nullptr</span>, instanceCount);</code></pre>
+
+  <h2>Compute dispatch</h2>
+<pre><code>device.<span class="fn">dispatch_compute</span>(<span class="nm">64</span>, <span class="nm">64</span>, <span class="nm">1</span>);
+device.<span class="fn">memory_barrier</span>(<span class="ty">easygl</span>::<span class="ty">MemoryBarrierMask</span>::<span class="nm">ShaderStorage</span>);</code></pre>
+
+  <h2>Debug</h2>
+<pre><code>device.<span class="fn">set_debug_output_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">set_debug_output_synchronous_enabled</span>(<span class="kw">true</span>);
+device.<span class="fn">push_debug_group</span>(<span class="ty">easygl</span>::<span class="ty">DebugSource</span>::<span class="nm">Application</span>, <span class="nm">1</span>, <span class="st">"Shadow pass"</span>);
+<span class="cm">// ... render shadow pass ...</span>
+device.<span class="fn">pop_debug_group</span>();
+device.<span class="fn">object_label</span>(<span class="ty">easygl</span>::<span class="ty">DebugObjectLabel</span>::<span class="nm">Buffer</span>, vbo.<span class="fn">native_handle</span>(), <span class="st">"Vertex buffer"</span>);</code></pre>
+
+  <h2>Misc</h2>
+<pre><code>device.<span class="fn">flush</span>();
+device.<span class="fn">finish</span>();
+<span class="ty">easygl</span>::<span class="ty">ErrorCode</span> err = device.<span class="fn">get_error</span>();
+<span class="ty">easygl</span>::<span class="ty">GraphicsResetStatus</span> rs = device.<span class="fn">get_graphics_reset_status</span>();</code></pre>
+
+  <h2>Full method reference</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>initialize(loader)</code></td><td>Load all GL function pointers via the provided loader.</td></tr>
+    <tr><td><code>is_initialized()</code></td><td>Returns true after successful initialize().</td></tr>
+    <tr><td><code>config()</code></td><td>Returns the Config used at construction.</td></tr>
+    <tr><td><code>capabilities()</code></td><td>Returns Capabilities containing ContextInfo and feature flags.</td></tr>
+    <tr><td><code>supports(Feature)</code></td><td>Returns true if the feature is available.</td></tr>
+    <tr><td><code>require(Feature)</code></td><td>Throws Exception if the feature is not available.</td></tr>
+    <tr><td><code>clear(ClearFlags)</code></td><td>Clear color/depth/stencil buffers by bitmask.</td></tr>
+    <tr><td><code>clear_bufferfv(buffer, drawbuffer, value)</code></td><td>Clear a specific draw buffer with float values.</td></tr>
+    <tr><td><code>clear_bufferiv(buffer, drawbuffer, value)</code></td><td>Clear a specific draw buffer with int values.</td></tr>
+    <tr><td><code>clear_bufferuiv(buffer, drawbuffer, value)</code></td><td>Clear a specific draw buffer with uint values.</td></tr>
+    <tr><td><code>clear_bufferfi(drawbuffer, depth, stencil)</code></td><td>Clear depth + stencil simultaneously.</td></tr>
+    <tr><td><code>set_clear_color(r,g,b,a)</code></td><td>Set the clear color value.</td></tr>
+    <tr><td><code>set_clear_depth(d)</code></td><td>Set the clear depth value (0–1).</td></tr>
+    <tr><td><code>set_clear_stencil(v)</code></td><td>Set the clear stencil value.</td></tr>
+    <tr><td><code>set_viewport(x,y,w,h)</code></td><td>Set the rendering viewport.</td></tr>
+    <tr><td><code>get_viewport(x,y,w,h)</code></td><td>Query the current viewport.</td></tr>
+    <tr><td><code>set_scissor_test_enabled(bool)</code></td><td>Enable/disable the scissor test.</td></tr>
+    <tr><td><code>set_scissor(x,y,w,h)</code></td><td>Set the scissor rectangle.</td></tr>
+    <tr><td><code>set_blend_enabled(bool)</code></td><td>Enable/disable blending.</td></tr>
+    <tr><td><code>set_blend_func(src,dst)</code></td><td>Set blend source/destination factors.</td></tr>
+    <tr><td><code>set_blend_func_separate(srcRGB,dstRGB,srcA,dstA)</code></td><td>Separate RGB/alpha blend factors.</td></tr>
+    <tr><td><code>set_blend_equation(mode)</code></td><td>Set blend equation.</td></tr>
+    <tr><td><code>set_blend_equation_separate(rgb, alpha)</code></td><td>Separate RGB/alpha blend equations.</td></tr>
+    <tr><td><code>set_blend_color(r,g,b,a)</code></td><td>Set the blend constant color.</td></tr>
+    <tr><td><code>get_blend_func(src, dst)</code></td><td>Query current blend factors.</td></tr>
+    <tr><td><code>set_depth_test_enabled(bool)</code></td><td>Enable/disable depth testing.</td></tr>
+    <tr><td><code>set_depth_mask(bool)</code></td><td>Enable/disable depth writes.</td></tr>
+    <tr><td><code>set_depth_func(func)</code></td><td>Set depth comparison function.</td></tr>
+    <tr><td><code>set_depth_range(near, far)</code></td><td>Set depth range mapping.</td></tr>
+    <tr><td><code>get_depth_func()</code></td><td>Query current depth comparison function.</td></tr>
+    <tr><td><code>set_stencil_test_enabled(bool)</code></td><td>Enable/disable stencil testing.</td></tr>
+    <tr><td><code>set_stencil_func(func, ref, mask)</code></td><td>Set stencil comparison function.</td></tr>
+    <tr><td><code>set_stencil_func_separate(face, func, ref, mask)</code></td><td>Per-face stencil function.</td></tr>
+    <tr><td><code>set_stencil_op(sfail, dpfail, dppass)</code></td><td>Set stencil operations.</td></tr>
+    <tr><td><code>set_stencil_op_separate(face, sfail, dpfail, dppass)</code></td><td>Per-face stencil operations.</td></tr>
+    <tr><td><code>set_stencil_mask(mask)</code></td><td>Stencil write mask.</td></tr>
+    <tr><td><code>set_stencil_mask_separate(face, mask)</code></td><td>Per-face stencil write mask.</td></tr>
+    <tr><td><code>set_cull_face_enabled(bool)</code></td><td>Enable/disable back-face culling.</td></tr>
+    <tr><td><code>set_cull_face(face)</code></td><td>Set which face to cull (Front, Back, FrontAndBack).</td></tr>
+    <tr><td><code>set_front_face(face)</code></td><td>Set winding order for front face.</td></tr>
+    <tr><td><code>get_cull_face()</code></td><td>Query current cull face setting.</td></tr>
+    <tr><td><code>set_polygon_offset_fill_enabled(bool)</code></td><td>Enable/disable polygon offset fill.</td></tr>
+    <tr><td><code>set_polygon_offset(factor, units)</code></td><td>Set polygon offset parameters.</td></tr>
+    <tr><td><code>set_line_width(width)</code></td><td>Set line rasterisation width.</td></tr>
+    <tr><td><code>set_color_mask(r,g,b,a)</code></td><td>Set color channel write mask.</td></tr>
+    <tr><td><code>get_color_mask(r,g,b,a)</code></td><td>Query current color write mask.</td></tr>
+    <tr><td><code>set_sample_coverage(value, invert)</code></td><td>Set sample coverage value.</td></tr>
+    <tr><td><code>set_sample_alpha_to_coverage_enabled(bool)</code></td><td>Enable alpha-to-coverage.</td></tr>
+    <tr><td><code>set_rasterizer_discard_enabled(bool)</code></td><td>Discard rasterisation (useful for transform feedback).</td></tr>
+    <tr><td><code>set_pixel_store(pname, value)</code></td><td>Set pixel pack/unpack alignment.</td></tr>
+    <tr><td><code>read_pixels(x,y,w,h,format,type,pixels)</code></td><td>Read pixels from framebuffer into CPU memory.</td></tr>
+    <tr><td><code>set_read_buffer(src)</code></td><td>Set source buffer for read_pixels.</td></tr>
+    <tr><td><code>set_draw_buffers(span)</code></td><td>Set draw buffer targets.</td></tr>
+    <tr><td><code>draw_arrays(prim,first,count)</code></td><td>Non-indexed draw call.</td></tr>
+    <tr><td><code>draw_elements(prim,count,type,offset)</code></td><td>Indexed draw call.</td></tr>
+    <tr><td><code>draw_arrays_instanced(...)</code></td><td>Instanced non-indexed draw.</td></tr>
+    <tr><td><code>draw_elements_instanced(...)</code></td><td>Instanced indexed draw.</td></tr>
+    <tr><td><code>draw_arrays_indirect(prim, indirect)</code></td><td>Indirect non-indexed draw.</td></tr>
+    <tr><td><code>draw_elements_indirect(prim, type, indirect)</code></td><td>Indirect indexed draw.</td></tr>
+    <tr><td><code>draw_range_elements(prim, start, end, count, type, indices)</code></td><td>Indexed draw with vertex range hint.</td></tr>
+    <tr><td><code>dispatch_compute(x,y,z)</code></td><td>Launch a compute shader.</td></tr>
+    <tr><td><code>memory_barrier(mask)</code></td><td>Insert a memory barrier.</td></tr>
+    <tr><td><code>memory_barrier_by_region(mask)</code></td><td>Region-scoped memory barrier.</td></tr>
+    <tr><td><code>set_patch_vertices(count)</code></td><td>Set patch vertex count for tessellation shaders.</td></tr>
+    <tr><td><code>set_debug_output_enabled(bool)</code></td><td>Enable/disable debug output.</td></tr>
+    <tr><td><code>set_debug_output_synchronous_enabled(bool)</code></td><td>Enable synchronous debug output.</td></tr>
+    <tr><td><code>push_debug_group(source, id, message)</code></td><td>Push a named debug group.</td></tr>
+    <tr><td><code>pop_debug_group()</code></td><td>Pop the current debug group.</td></tr>
+    <tr><td><code>object_label(identifier, name, label)</code></td><td>Attach a debug label to a GL object.</td></tr>
+    <tr><td><code>set_hint(target, mode)</code></td><td>Set an implementation hint.</td></tr>
+    <tr><td><code>is_enabled(cap)</code></td><td>Query if a capability is enabled.</td></tr>
+    <tr><td><code>is_enabled(cap, index)</code></td><td>Query an indexed capability.</td></tr>
+    <tr><td><code>get_error()</code></td><td>Poll for a pending GL error.</td></tr>
+    <tr><td><code>get_graphics_reset_status()</code></td><td>Check for GPU context reset.</td></tr>
+    <tr><td><code>flush() / finish()</code></td><td>Flush or synchronously finish all pending commands.</td></tr>
+  </table>
+
+  <h2>State getters</h2>
+  <table>
+    <tr><th>Method</th><th>Description</th></tr>
+    <tr><td><code>get_boolean(pname)</code></td><td>Query a bool GL state value.</td></tr>
+    <tr><td><code>get_float(pname)</code></td><td>Query a float GL state value.</td></tr>
+    <tr><td><code>get_integer(pname)</code></td><td>Query an int GL state value.</td></tr>
+    <tr><td><code>get_integer64(pname)</code></td><td>Query a 64-bit int GL state value.</td></tr>
+    <tr><td><code>get_integeri(pname, index)</code></td><td>Query an indexed int GL state value.</td></tr>
+    <tr><td><code>get_integer64i(pname, index)</code></td><td>Query an indexed 64-bit int GL state value.</td></tr>
+    <tr><td><code>get_booleani(pname, index)</code></td><td>Query an indexed bool GL state value.</td></tr>
+  </table>
+</main>
+</body>
+</html>
