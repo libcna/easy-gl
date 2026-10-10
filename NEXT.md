@@ -31,6 +31,10 @@ All tests use fake function-pointer loaders and require no real GL context, so t
 
 **Library:** `libeasy-gl.a` (static)
 
+**Release:** `0.1.0` (2026-10-10) is the first tagged release, built against meta-gl `v0.4.0`.
+The version is decided in `CMakeLists.txt` and generated into `easygl/Version.hpp`; see
+`CHANGELOG.md` and `docs/releasing.md`.
+
 **Example:** `hello-triangle-sdl` — SDL2+OpenGL ES triangle demo (builds, requires display).
 
 **What does NOT work yet:**
