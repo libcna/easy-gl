@@ -32,3 +32,11 @@ easygl_apply_warnings(easy-gl-webgl-tests)
 
 add_test(NAME easy-gl-context-lifecycle-tests COMMAND easy-gl-context-lifecycle-tests)
 add_test(NAME easy-gl-webgl-tests COMMAND easy-gl-webgl-tests)
+
+add_executable(easy-gl-version-tests
+        smoke/VersionTests.cpp)
+target_link_libraries(easy-gl-version-tests PRIVATE easy-gl::easy-gl)
+target_compile_definitions(easy-gl-version-tests PRIVATE
+        EASYGL_TEST_EXPECTED_VERSION="${EASYGL_VERSION_STRING}")
+easygl_apply_warnings(easy-gl-version-tests)
+add_test(NAME easy-gl-version-tests COMMAND easy-gl-version-tests)

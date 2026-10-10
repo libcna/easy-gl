@@ -7,6 +7,22 @@ project(easy-gl
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
+# --- Release identity (docs/releasing.md) --------------------------------------------------
+# project(VERSION) accepts numeric components only, so the Semantic Versioning pre-release
+# identifier lives beside it and is joined back on here. Deliberately a normal variable and not
+# a cache entry: the version identifies the release, it is not a per-build knob, and a cached
+# copy would keep an already-configured build directory reporting the previous release after a
+# bump. EASYGL_VERSION_STRING is the single spelling the rest of the build reads -- the
+# generated easygl/Version.hpp and the configure banner. Do not re-derive it elsewhere.
+set(EASYGL_VERSION_PRERELEASE "")
+if(EASYGL_VERSION_PRERELEASE)
+    set(EASYGL_VERSION_STRING "${PROJECT_VERSION}-${EASYGL_VERSION_PRERELEASE}")
+else()
+    set(EASYGL_VERSION_STRING "${PROJECT_VERSION}")
+endif()
+message(STATUS "easy-gl: version ${EASYGL_VERSION_STRING}")
+include(EasyGlVersion)
+
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
@@ -59,7 +75,6 @@ target_sources(easy-gl
         include/easygl/easygl.hpp
         include/easygl/Config.hpp
         include/easygl/Export.hpp
-        include/easygl/Version.hpp
         include/easygl/Exception.hpp
         include/easygl/Types.hpp
         include/easygl/ContextInfo.hpp
@@ -88,6 +103,15 @@ target_sources(easy-gl
         include/easygl/UniformCache.hpp
 )
 
+target_sources(easy-gl
+    PUBLIC
+    FILE_SET generated_headers
+    TYPE HEADERS
+    BASE_DIRS "${CMAKE_CURRENT_BINARY_DIR}/include"
+    FILES
+        "${CMAKE_CURRENT_BINARY_DIR}/include/easygl/Version.hpp"
+)
+
 target_link_libraries(easy-gl PUBLIC meta-gl::meta-gl)
 
 target_compile_features(easy-gl PUBLIC cxx_std_23)
@@ -95,7 +119,8 @@ target_compile_features(easy-gl PUBLIC cxx_std_23)
 easygl_apply_warnings(easy-gl)
 install(TARGETS easy-gl
         EXPORT easy-gl-targets
-        FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILE_SET HEADERS           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        FILE_SET generated_headers DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 if(EASYGL_BUILD_TESTS)
