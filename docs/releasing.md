@@ -1,6 +1,6 @@
 # Releasing easy-gl
 
-*Current as of 0.1.0 (2026-10-10).*
+*Current as of 0.1.1 (2026-10-10).*
 
 easy-gl follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). A release is
 an annotated git tag plus a `CHANGELOG.md` entry — there is no separate release branch, no
@@ -12,12 +12,12 @@ The version is decided in exactly **one** place:
 
 ```cmake
 # CMakeLists.txt (repository root)
-project(easy-gl VERSION 0.1.0 ...)
+project(easy-gl VERSION 0.1.1 ...)
 set(EASYGL_VERSION_PRERELEASE "")   # e.g. "beta.1"; empty on a final release
 ```
 
 `project(VERSION …)` accepts numeric components only, so the pre-release identifier sits beside
-it and the two are joined into `EASYGL_VERSION_STRING` (`0.1.0`, or `0.2.0-beta.1`).
+it and the two are joined into `EASYGL_VERSION_STRING` (`0.1.1`, or `0.2.0-beta.1`).
 `EASYGL_VERSION_PRERELEASE` is deliberately a normal variable and not a cache entry: a cached
 copy would keep an existing build directory reporting the previous release after a bump.
 
@@ -101,7 +101,7 @@ CNA consumes easy-gl the same way, as a sibling checkout of `../easy-gl`.
 7. **Tag** with a `v` prefix and an annotated tag:
 
    ```bash
-   git tag -a v0.1.0 -m "easy-gl 0.1.0"
+   git tag -a v0.1.1 -m "easy-gl 0.1.1"
    ```
 
    The tag string carries the `v`; `EASYGL_VERSION_STRING` never does.
@@ -109,7 +109,10 @@ CNA consumes easy-gl the same way, as a sibling checkout of `../easy-gl`.
 
    ```bash
    git push origin develop
-   git push origin v0.1.0
+   git push origin v0.1.1
    ```
+
+   Never move or recreate a tag once it is pushed — downstream entries record what it pointed
+   at. If a pushed release needs a fix, release the next patch version instead.
 9. **Open the next cycle** by adding an empty `## [Unreleased]` section back to `CHANGELOG.md`
    if step 2 consumed it.

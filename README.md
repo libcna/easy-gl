@@ -24,8 +24,8 @@ The API is intentionally compact and evolving.
 
 ## Version
 
-Current release: **0.1.0**, built and tested against meta-gl
-[`v0.4.0`](https://github.com/libcna/meta-gl/releases/tag/v0.4.0) (pre-1.0 — a minor release may
+Current release: **0.1.1**, built and tested against meta-gl
+[`v0.4.1`](https://github.com/libcna/meta-gl/releases/tag/v0.4.1) (pre-1.0 — a minor release may
 change the public API; see [`CHANGELOG.md`](CHANGELOG.md) for what the release contains and
 [`docs/releasing.md`](docs/releasing.md) for how versions are managed). meta-gl is a sibling
 checkout (`../meta-gl`), so check out that tag next to easy-gl to reproduce the release.

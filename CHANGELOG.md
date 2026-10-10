@@ -9,6 +9,33 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html). While the
 
 ## [Unreleased]
 
+## [0.1.1] — 2026-10-10
+
+Moves easy-gl onto meta-gl 0.4.1. No easy-gl source file or public API changed.
+
+### Changed
+
+- Built and tested against **meta-gl [`v0.4.1`](https://github.com/libcna/meta-gl/releases/tag/v0.4.1)**
+  (`dd3b30055d55fdc42240de7af248259338256992`) instead of `v0.4.0`. meta-gl 0.4.1 keeps the
+  0.4.0 API; it stops an unoptimized *shared* Linux `libmeta-gl.so` from exporting libstdc++
+  template instantiations, and runs all of meta-gl's tests in CI. easy-gl builds meta-gl as a
+  static library unless `EASYGL_BUILD_SHARED=ON`, so its default build is unaffected by that
+  fix. As before, meta-gl is a sibling checkout (`../meta-gl`) that this tag does not select:
+  check out meta-gl `v0.4.1` next to easy-gl to reproduce this release.
+
+### Fixed
+
+- The 0.1.0 entry named meta-gl `v0.4.0` as `4399a3ed`. The `v0.4.0` tag was moved on the
+  meta-gl remote after easy-gl 0.1.0 was cut and now points at `1a7df71d`, which adds only test
+  and CI changes to `4399a3ed`. The 0.1.0 entry now records both, so the hash it names is the
+  one 0.1.0 was actually built against.
+
+### Verification
+
+- **5/5** CTest tests pass in a Debug build against meta-gl `v0.4.1`, and the library, the
+  tests and the `hello-triangle-sdl` example build with **0 warnings**.
+- Verified on Debian GNU/Linux 13 with GCC 14.2.0, CMake 3.31.6, Ninja and SDL3 3.4.0.
+
 ## [0.1.0] — 2026-10-10
 
 First tagged release. easy-gl has been developed since 2026-04-14 and has declared 0.1.0 in
@@ -44,8 +71,10 @@ so the entries below describe what the release contains, not what changed since 
 
 ### Dependencies
 
-- **meta-gl [`v0.4.0`](https://github.com/libcna/meta-gl/releases/tag/v0.4.0)**
-  (`4399a3edce7e1f06f805ebbc5609662d4d6dd6f4`). easy-gl consumes meta-gl as a sibling checkout
+- **meta-gl [`v0.4.0`](https://github.com/libcna/meta-gl/releases/tag/v0.4.0)** as it stood
+  when this release was cut: `4399a3edce7e1f06f805ebbc5609662d4d6dd6f4`. The tag was later moved
+  to `1a7df71d1346c09eb324d5fe58363a7fda74b661`, which adds only test and CI changes, so the
+  meta-gl library code is the same at both. easy-gl consumes meta-gl as a sibling checkout
   with `add_subdirectory(../meta-gl)`, so this tag does **not** select it: check out meta-gl
   `v0.4.0` next to easy-gl to reproduce this release.
 - SDL3 is optional and used only by the `hello-triangle-sdl` example, which is skipped when
@@ -72,5 +101,6 @@ so the entries below describe what the release contains, not what changed since 
 - Verified on Debian GNU/Linux 13 with GCC 14.2.0, CMake 3.31.6, Ninja and SDL3 3.4.0, against
   meta-gl `v0.4.0`.
 
-[Unreleased]: https://github.com/libcna/easy-gl/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/libcna/easy-gl/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/libcna/easy-gl/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/libcna/easy-gl/releases/tag/v0.1.0
