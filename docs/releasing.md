@@ -1,6 +1,6 @@
 # Releasing easy-gl
 
-*Current as of 0.1.1 (2026-10-10).*
+*Current as of 0.1.2 (2026-11-14).*
 
 easy-gl follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html). A release is
 an annotated git tag plus a `CHANGELOG.md` entry — there is no separate release branch, no

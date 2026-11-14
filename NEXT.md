@@ -31,7 +31,7 @@ All tests use fake function-pointer loaders and require no real GL context, so t
 
 **Library:** `libeasy-gl.a` (static)
 
-**Release:** `0.1.1` (2026-10-10), built against meta-gl `v0.4.1`; `0.1.0` (the same day) was
+**Release:** `0.1.2` (2026-11-14), built against meta-gl `v0.4.2`; `0.1.0` (2026-10-10) was
 the first tagged release.
 The version is decided in `CMakeLists.txt` and generated into `easygl/Version.hpp`; see
 `CHANGELOG.md` and `docs/releasing.md`.
